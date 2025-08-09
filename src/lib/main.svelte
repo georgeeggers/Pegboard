@@ -1,6 +1,6 @@
 <script>
   import { scale } from "svelte/transition";
-  import { pb, globalState } from "../global.svelte";
+  import { globalState, refresh_pocket } from "../global.svelte";
   import { onDestroy, onMount } from "svelte";
   import { push } from "svelte-spa-router";
   // contains objects that have titles, bodies, colors, and x and y coords
@@ -15,6 +15,10 @@
     changeColor(globalState.mainColor);
     changeDot(globalState.dotColor);
     changeBackground(globalState.backgroundColor);
+  })
+
+  $effect(() => {
+    refresh_pocket(globalState.url)
   })
 
   const changeColor = (color) => {
@@ -49,7 +53,7 @@
       notes[selected].y = (Math.round(notes[selected].y / snapSize) * snapSize);
 
       if(notes[selected].type != "settings"){
-        const _record = await pb.collection('notes').update(notes[selected].id, notes[selected]);
+        const _record = await globalState.pocket.collection('notes').update(notes[selected].id, notes[selected]);
       }
     }
 
@@ -88,7 +92,7 @@
   const refresh = () => {
     notes = [];
     setTimeout(async () => {
-      const response = await pb.collection("notes").getFullList({
+      const response = await globalState.pocket.collection("notes").getFullList({
         sort: "-created",
       });
       notes = response;
@@ -143,14 +147,14 @@
   let unsubscribe;
   onMount(async () => {
 
-    const response = await pb.collection("notes").getFullList({
+    const response = await globalState.pocket.collection("notes").getFullList({
       sort: "-created",
     });
     notes = response;
     for(let i of notes) {
       i.editing = false;
     }
-    unsubscribe = await pb
+    unsubscribe = await globalState.pocket
       .collection("notes")
       .subscribe("*", async ({ action, record }) => {
         if (action == "create") {
@@ -192,10 +196,10 @@
           "y": notes[index].y
         }
 
-        const upload = await pb.collection('notes').update(notes[index].id, data);
+        const upload = await globalState.pocket.collection('notes').update(notes[index].id, data);
         if(upload){
           console.log("File Uploaded");
-          const record = await pb.collection('notes').getOne(notes[index].id);
+          const record = await globalState.pocket.collection('notes').getOne(notes[index].id);
           notes[index] = record;
           notes[index].editing = true;
           notes[index].uploading = false;
@@ -206,7 +210,7 @@
   }
 
   const get_thumbnail = (index) => {
-    return pb.files.getURL(notes[index], notes[index].image);
+    return globalState.pocket.files.getURL(notes[index], notes[index].image);
   }
 
   async function handleFileChange(e, index){ 
@@ -239,7 +243,7 @@
         let temp = await document.getElementById(index.toString());
         temp.addEventListener('mousedown', mouseDownLogic);
         temp.addEventListener('mouseup', mouseUpLogic);
-        const _record = await pb.collection('notes').update(notes[index].id, notes[index]);
+        const _record = await globalState.pocket.collection('notes').update(notes[index].id, notes[index]);
       } catch (Err) {
         console.log("This should be fine")
       }
@@ -247,7 +251,7 @@
   }
 
   const deleteNote = async (index) => {
-    await pb.collection('notes').delete(notes[index].id);
+    await globalState.pocket.collection('notes').delete(notes[index].id);
     notes.splice(index, 1);
     selected = -1;
   }
@@ -267,7 +271,7 @@
       y: window.scrollY + window.innerHeight / 2
     };
 
-    const record = await pb.collection('notes').create(data);
+    const record = await globalState.pocket.collection('notes').create(data);
 
     let temp = document.getElementById((notes.length - 1).toString());
     temp.addEventListener('mousedown', mouseDownLogic);
@@ -328,7 +332,7 @@
       }
 
       await navigator.clipboard.writeText(text);
-      addNotification("Copied to Clipboard")      
+      addNotification("Copied to CliglobalState.pocketoard")      
     } catch (error) {
       console.error('Failed to copy text: ', error);
     }
@@ -376,7 +380,7 @@
   }
 
   const download = (index) => {
-      const url = pb.files.getURL(notes[index], notes[index].image) + "?download=1";
+      const url = globalState.pocket.files.getURL(notes[index], notes[index].image) + "?download=1";
       return url
   }
 
@@ -389,7 +393,7 @@
       y: window.scrollY + window.innerHeight / 2
     };
 
-    const record = await pb.collection('notes').create(data);
+    const record = await globalState.pocket.collection('notes').create(data);
 
     let temp = document.getElementById((notes.length - 1).toString());
     temp.addEventListener('mousedown', mouseDownLogic);
@@ -416,7 +420,7 @@
       y: window.scrollY + window.innerHeight / 2
     };
 
-    const record = await pb.collection('notes').create(data);
+    const record = await globalState.pocket.collection('notes').create(data);
 
     let temp = document.getElementById((notes.length - 1).toString());
     temp.addEventListener('mousedown', mouseDownLogic);
@@ -440,7 +444,7 @@
   }
 
   const updateNote = async (index) => {
-    const _record = await pb.collection('notes').update(notes[selected].id, notes[selected]);
+    const _record = await globalState.pocket.collection('notes').update(notes[selected].id, notes[selected]);
   }
 
   // will contain objects that look like 
@@ -589,7 +593,7 @@
       await sleep(time);
     }
     for(let i of notes){
-      const _result = await pb.collection('notes').update(i.id, i);
+      const _result = await globalState.pocket.collection('notes').update(i.id, i);
     }
   }
 
@@ -844,6 +848,18 @@
             bind:value={globalState.imageWidth}
         ></textarea>
         <p1 class="body" style="color: #5f5f5f">px</p1>
+      </span>
+
+      <span class="inline">
+        <p1 class="title">Note Server</p1>
+      </span>
+        
+      <span class="inline">
+        
+        <textarea
+            class="body"
+            bind:value={globalState.url}
+        ></textarea>
       </span>
 
     {/if}
