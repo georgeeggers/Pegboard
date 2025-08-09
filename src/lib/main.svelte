@@ -210,13 +210,11 @@
   }
 
   async function handleFileChange(e, index){ 
-    console.log(e);
-    console.log(index);
-    console.log("handling file");
     notes[index].uploading = true;
     if(e.type == "change"){
       await upload(e.target.files[0], index);
     } else if (e.type == "drop"){
+      e.preventDefault();
       await upload(e.dataTransfer.files[0], index);
     }
   };
@@ -647,20 +645,26 @@
       {#if note.editing}
         <input
           type="file"
-          multiple
-          onchange={() => handleFileChange(event, notes.indexOf(note))}
+          onchange={(event) => handleFileChange(event, notes.indexOf(note))}
           id="uploadTrigger"
           style="visibility: hidden; position: fixed;"
         >
+
       {/if}
       {#if note.image == ""}
         {#if note.uploading}
           <div class="imagePlaceholder icon" style="flex-direction: row;" >y</div>
         {:else}
-          <label class="imagePlaceholder hover" style="flex-direction: row;" id='uploadButton' for="uploadTrigger">+</label>
+          <label class="imagePlaceholder hover" style="flex-direction: row;"for="uploadTrigger"
+              ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
+              ondragover={(e) => e.preventDefault()}
+          >+</label>
         {/if}
       {:else}
-        <label for="uploadTrigger">
+        <label for="uploadTrigger"
+          ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
+          ondragover={(e) => e.preventDefault()}
+        >
           <img src="{get_thumbnail(notes.indexOf(note))}" class="thumbnailImage" alt="thumbnail" draggable="false"/>
         </label>
       {/if}
