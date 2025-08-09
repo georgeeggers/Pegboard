@@ -332,7 +332,7 @@
       }
 
       await navigator.clipboard.writeText(text);
-      addNotification("Copied to CliglobalState.pocketoard")      
+      addNotification("Copied to Clipboard")      
     } catch (error) {
       console.error('Failed to copy text: ', error);
     }
