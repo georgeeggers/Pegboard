@@ -1,0 +1,56 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  --bg-color: #1a1a1a;
+  --note-color: #2f2f2f;
+  --inactive-color: #252525;
+  --light-grey: #3b3b3b;
+  --main-color: #c5a103;
+  background-color: var(--bg-color);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  scrollbar-width: none; /* For Firefox */
+  -ms-overflow-style: none; /* For Internet Explorer and Edge */
+
+  --dot-color: #F8FBF8;
+  --dot-size: 2px;
+  --dot-space: 50px;
+	background:
+	  linear-gradient(90deg, var(--bg-color) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
+    linear-gradient(var(--bg-color) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
+	  var(--dot-color)
+  ;
+
+}
+
+:root::-webkit-scrollbar {
+    width: 0px; /* For Chrome, Safari, and Opera */
+}
+
+@font-face {
+  font-family: icon;
+  src: url('./assets/icons.otf');
+}
+
+.icon {
+  font-family: icon !important;
+  font-size: 26px;
+}
+
+@font-face {
+  font-family: icon2;
+  src: url('./assets/icons2.otf');
+}
+
+.icon2 {
+  font-family: icon2 !important;
+  font-size: 26px;
+}
