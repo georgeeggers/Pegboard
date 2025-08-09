@@ -1,0 +1,3 @@
+Download a PocketBase executable from https://pocketbase.io/docs/
+Run it through the command line, and follow setup instructions
+When you get to the overview page, go to the wrench icon, then import pb_schema.json
