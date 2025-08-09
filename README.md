@@ -1,3 +1,5 @@
+<img src="./public/pegboardLogo.svg"></img>
+
 # PegBoard
 A simple, self hosted thought organizer and graphical note webapp
 # ToDo
