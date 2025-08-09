@@ -1,3 +1,5 @@
+<img src="./public/pegboardLogo.svg"></img>
+
 # PegBoard
 A simple, self hosted thought organizer and graphical note webapp
 # ToDo
@@ -10,7 +12,7 @@ A simple, self hosted thought organizer and graphical note webapp
   (x) - Image
   (x) - ToDo
 (x) - Add function for mobile devices (not anymore because frontend relies on css properties not supported in webkit)
-( ) - Make a logo
+(X) - Make a logo
 (x) - Different Color Schemes
 ( ) - Add a cleanup feature to group notes together
   ( ) - 2d collision handling
