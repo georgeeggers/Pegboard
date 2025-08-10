@@ -692,7 +692,13 @@
               readonly
             >{note.image}</textarea>
           {:else}
-            <img src="{get_thumbnail(notes.indexOf(note))}" class="thumbnailImage" alt="thumbnail" draggable="false"/>
+            <label for="uploadTrigger"
+              class="imagePlaceholder"
+              ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
+              ondragover={(e) => e.preventDefault()}
+            >
+              <img src="{get_thumbnail(notes.indexOf(note))}" class="thumbnailImage" alt="thumbnail" draggable="false"/>
+            </label>
           {/if}
 
       {/if}
