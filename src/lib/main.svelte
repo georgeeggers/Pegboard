@@ -2,7 +2,6 @@
   import { scale } from "svelte/transition";
   import { globalState, refresh_pocket } from "../global.svelte";
   import { onDestroy, onMount } from "svelte";
-  import { push } from "svelte-spa-router";
   // contains objects that have titles, bodies, colors, and x and y coords
   let notes = $state([]);
   let selected = $state(-1);
@@ -29,6 +28,42 @@
   }
   const changeBackground = (color) => {
     document.documentElement.style.setProperty('--bg-color', "#" + color);
+  }
+
+  const saveSettings = () => {
+      const prefs = {
+          mainColor: globalState.mainColor,
+          dotColor: globalState.dotColor,
+          backgroundColor: globalState.backgroundColor,
+          noteWidth: globalState.noteWidth,
+          imageWidth: globalState.imageWidth,
+          url: globalState.url
+      }
+      localStorage.setItem("settings", JSON.stringify(prefs));
+      addNotification("Settings saved!")
+  }
+
+  const loadSettings = async () => {
+      const settings = JSON.parse(await localStorage.getItem("settings"));
+      if(settings == null){
+          return;
+      }
+
+      globalState.mainColor = settings.mainColor;
+      globalState.dotColor = settings.dotColor
+      globalState.backgroundColor = settings.backgroundColor;
+      globalState.noteWidth = settings.noteWidth;
+      globalState.imageWidth = settings.imageWidth;
+      globalState.url = settings.url;
+  }
+
+  const clearSettings = () => {
+    try {
+      localStorage.removeItem("settings");
+    } catch (E) {
+      console.log(E);
+    }
+    addNotification("Settings cleared! Reload for changes to take effect")
   }
 
   let dragLogic = (e) => {
@@ -59,22 +94,6 @@
 
   }
 
-  const deleteAnimation = (x, y) => {
-    const pop = document.createElement('div');
-    let location = document.getElementById('app');
-    location.appendChild(pop);
-    pop.style.cssText = `border: 4px solid rgba(255, 255, 255, 1.0); scale: 0; transition: border-color 1s ease-out, scale 1s ease-out; position: absolute; left: ${x - 50}px; top: ${y - 50}px; width: 101px; height: 101px; z-index: 1; border-radius: 100%; box-sizing: border-box;`;
-
-    setTimeout(() => {
-      pop.style['scale'] = '1';
-      pop.style['border-color'] = "rgba(255, 255, 255, 0.0)";
-    }, 25);
-
-    setTimeout(() => {
-      pop.remove();
-    }, 1000);
-  }
-
   let mouseDownLogic = async (e) => {
     if(e.button == 0){
       const element = e.currentTarget;
@@ -85,29 +104,6 @@
       dragging = true;
       document.addEventListener('mousemove', dragLogic);
     }
-
-  }
-
-
-  const refresh = () => {
-    notes = [];
-    setTimeout(async () => {
-      const response = await globalState.pocket.collection("notes").getFullList({
-        sort: "-created",
-      });
-      notes = response;
-      for(let i of notes) {
-        i.editing = false;
-      }
-
-      let n = document.getElementsByClassName('note');
-
-      for(let i of n){
-        i.addEventListener('mousedown', mouseDownLogic)
-
-        i.addEventListener('mouseup', mouseUpLogic);
-      }
-    }, 500);
 
   }
 
@@ -146,7 +142,7 @@
 
   let unsubscribe;
   onMount(async () => {
-
+    await loadSettings();
     const response = await globalState.pocket.collection("notes").getFullList({
       sort: "-created",
     });
@@ -209,8 +205,26 @@
     }
   }
 
+  const isImage = (ext) => {
+    for(let name of [
+      "jpg", "jpeg", "png", "gif", "bmp", "tiff", "tif",
+      "webp", "heif", "heic", "ico", "avif",
+      "psd", "ai", "eps", "raw", "cr2", "nef"
+    ]){
+      if(name == ext){
+        return true;
+      }
+    }
+    return false;
+  }
+
   const get_thumbnail = (index) => {
-    return globalState.pocket.files.getURL(notes[index], notes[index].image);
+    let ext = notes[index].image.split('.').reverse()[0];
+    if(isImage(ext.toLowerCase())){
+      return globalState.pocket.files.getURL(notes[index], notes[index].image);
+    } else {
+      return "null";
+    }
   }
 
   async function handleFileChange(e, index){ 
@@ -226,10 +240,6 @@
   onDestroy(() => {
     unsubscribe?.();
   });
-
-  const test = () => {
-    alert("Cliked");
-  }
 
   const edit = async (index) => {
     notes[index].editing = !notes[index].editing;
@@ -665,12 +675,26 @@
           >+</label>
         {/if}
       {:else}
-        <label for="uploadTrigger"
-          ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
-          ondragover={(e) => e.preventDefault()}
-        >
-          <img src="{get_thumbnail(notes.indexOf(note))}" class="thumbnailImage" alt="thumbnail" draggable="false"/>
-        </label>
+
+
+
+          {#if get_thumbnail(notes.indexOf(note)) == "null"}
+            <label for="uploadTrigger"
+              class="imagePlaceholder icon"
+              ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
+              ondragover={(e) => e.preventDefault()}
+            >
+            N
+            </label>
+            <textarea
+              class="body"
+              placeholder="Content"
+              readonly
+            >{note.image}</textarea>
+          {:else}
+            <img src="{get_thumbnail(notes.indexOf(note))}" class="thumbnailImage" alt="thumbnail" draggable="false"/>
+          {/if}
+
       {/if}
 
     {:else if note.type == "list"}
@@ -876,6 +900,8 @@
       {#if note.type != "settings"}
       <button onclick={() => deleteNote(notes.indexOf(note))} class="icon controlButton">t</button>
       {:else}
+        <button onclick={saveSettings} class="icon controlButton">N</button>
+        <button onclick={clearSettings} class="icon controlButton">r</button>
         <button onclick={deleteSettings} class="icon controlButton">t</button>
       {/if}
 
@@ -889,9 +915,10 @@
 <button onclick={toggleMenu} class="menuButton icon" style='z-index: 5; {menuToggle ? "transform: rotate(180deg); color: var(--main-color);" : ""}'>;</button>
 <button onclick={add} class="menuButton" style='{menuToggle ? "transform: translateY(80px);" : ""}'>+</button>
 <button onclick={addImage} class="menuButton icon" style='{menuToggle ? "transform: translateY(160px);" : ""}'>p</button>
-<button onclick={addTodo} class="menuButton icon" style='{menuToggle ? "transform: translateY(240px);" : ""}'>h</button>
-<button onclick={settings} class="menuButton icon2" style='{menuToggle ? "transform: translateY(320px);" : ""}'>_</button>
-<button onclick={sort} class="menuButton icon" style='{menuToggle ? "transform: translateY(400px);" : ""}'>r</button>
+<button onclick={addImage} class="menuButton icon" style='{menuToggle ? "transform: translateY(240px);" : ""}'>N</button>
+<button onclick={addTodo} class="menuButton icon" style='{menuToggle ? "transform: translateY(320px);" : ""}'>h</button>
+<button onclick={settings} class="menuButton icon2" style='{menuToggle ? "transform: translateY(400px);" : ""}'>_</button>
+<button onclick={sort} class="menuButton icon" style='{menuToggle ? "transform: translateY(480px);" : ""}'>r</button>
 
 
 <div 
@@ -955,9 +982,13 @@
   }
 
   .imageType {
-    justify-content: center;
-    align-items: center;
     gap: 10px;
+  }
+
+  .imageType .title {
+    align-items: center;
+    text-align: center;
+    justify-content: center;
   }
 
   .hover {
@@ -983,6 +1014,8 @@
     font-size: 64px;
     justify-content: center;
     align-items: center;
+    width: 100%;
+    text-align: center;
   }
 
   .notificationArea {
