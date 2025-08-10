@@ -14,6 +14,7 @@
     changeColor(globalState.mainColor);
     changeDot(globalState.dotColor);
     changeBackground(globalState.backgroundColor);
+    changeHighlight(globalState.hoverColor);
   })
 
   $effect(() => {
@@ -28,6 +29,9 @@
   }
   const changeBackground = (color) => {
     document.documentElement.style.setProperty('--bg-color', "#" + color);
+  }
+  const changeHighlight= (color) => {
+    document.documentElement.style.setProperty('--hover-color', "#" + color);
   }
 
   const saveSettings = () => {
@@ -143,25 +147,30 @@
   let unsubscribe;
   onMount(async () => {
     await loadSettings();
-    const response = await globalState.pocket.collection("notes").getFullList({
-      sort: "-created",
-    });
-    notes = response;
-    for(let i of notes) {
-      i.editing = false;
-    }
-    unsubscribe = await globalState.pocket
-      .collection("notes")
-      .subscribe("*", async ({ action, record }) => {
-        if (action == "create") {
-          let thing = record;
-          thing.editing = false;
-          await notes.push(thing);
-          let temp = await document.getElementById((notes.length - 1).toString());
-          temp.addEventListener('mousedown', mouseDownLogic);
-          temp.addEventListener('mouseup', mouseUpLogic);
-        }
+    try {
+      const response = await globalState.pocket.collection("notes").getFullList({
+        sort: "-created",
       });
+      notes = response;
+      for(let i of notes) {
+        i.editing = false;
+      }
+      unsubscribe = await globalState.pocket
+        .collection("notes")
+        .subscribe("*", async ({ action, record }) => {
+          if (action == "create") {
+            let thing = record;
+            thing.editing = false;
+            await notes.push(thing);
+            let temp = await document.getElementById((notes.length - 1).toString());
+            temp.addEventListener('mousedown', mouseDownLogic);
+            temp.addEventListener('mouseup', mouseUpLogic);
+          }
+        });
+    } catch {
+      addNotification("Failed to connect to note server")
+    }
+
 
     let n = document.getElementsByClassName('note');
 
@@ -827,6 +836,21 @@
       </span>
 
       <span class="inline">
+        <p1 class="title">Secondary Color</p1>
+      </span>
+
+      <span class="inline">
+        <p1 class="body" style="color: #5f5f5f">#</p1>
+        <textarea
+            class="body"
+            bind:value={globalState.hoverColor}
+        ></textarea>
+        <div class="example" style="background-color: #{globalState.hoverColor}">
+
+        </div>
+      </span>
+
+      <span class="inline">
         <p1 class="title">Background Color</p1>
       </span>
         
@@ -1013,7 +1037,7 @@
 
 
   .hover:hover {
-    color: var(--main-color);
+    color: var(--hover-color);
   }
 
   .imagePlaceholder{
@@ -1078,7 +1102,7 @@
   }
 
   .menuButton:hover {
-    color: var(--main-color);
+    color: var(--hover-color);
   }
 
   .controlButton {
@@ -1093,7 +1117,7 @@
   }
 
   .controlButton:hover {
-    color: var(--main-color);
+    color: var(--hover-color);
   }
 
   .true {
