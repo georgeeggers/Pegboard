@@ -30,29 +30,8 @@
     linear-gradient(var(--bg-color) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
 	  var(--dot-color)
   ;
-
 }
 
 :root::-webkit-scrollbar {
     width: 0px; /* For Chrome, Safari, and Opera */
-}
-
-@font-face {
-  font-family: icon;
-  src: url('./assets/icons.otf');
-}
-
-.icon {
-  font-family: icon !important;
-  font-size: 26px;
-}
-
-@font-face {
-  font-family: icon2;
-  src: url('./assets/icons2.otf');
-}
-
-.icon2 {
-  font-family: icon2 !important;
-  font-size: 26px;
 }

@@ -8,8 +8,8 @@ export const globalState = $state({
     hoverColor: '947900',
     noteWidth: '500',
     imageWidth: '500',
-    pocket: new PocketBase('http://127.0.0.1:8090'),
-    url: 'http://127.0.0.1:8090'
+    pocket: new PocketBase('http://73.173.154.154:8090'),
+    url: 'http://73.173.154.154:8090'
 })
 
 export const refresh_pocket = (url) => {
