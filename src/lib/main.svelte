@@ -11,28 +11,22 @@
   let snapSize = $state(1);
 
   $effect(() => {
-    changeColor(globalState.mainColor);
-    changeDot(globalState.dotColor);
-    changeBackground(globalState.backgroundColor);
-    changeHighlight(globalState.hoverColor);
-  })
+    const colorVars = {
+      '--main-color': globalState.mainColor,
+      '--dot-color': globalState.dotColor,
+      '--bg-color': globalState.backgroundColor,
+      '--hover-color': globalState.hoverColor,
+      '--text-color': globalState.textColor
+    };
 
+    for (const [varName, value] of Object.entries(colorVars)) {
+      document.documentElement.style.setProperty(varName, `#${value}`);
+    }
+  });
+  
   $effect(() => {
     refresh_pocket(globalState.url)
   })
-
-  const changeColor = (color) => {
-    document.documentElement.style.setProperty('--main-color', "#" + color);
-  }
-  const changeDot = (color) => {
-    document.documentElement.style.setProperty('--dot-color', "#" + color);
-  }
-  const changeBackground = (color) => {
-    document.documentElement.style.setProperty('--bg-color', "#" + color);
-  }
-  const changeHighlight= (color) => {
-    document.documentElement.style.setProperty('--hover-color', "#" + color);
-  }
 
   const saveSettings = () => {
       const prefs = {
@@ -161,6 +155,7 @@
           if (action == "create") {
             let thing = record;
             thing.editing = false;
+            thing.playing = false;
             await notes.push(thing);
             let temp = await document.getElementById((notes.length - 1).toString());
             temp.addEventListener('mousedown', mouseDownLogic);
@@ -214,26 +209,30 @@
     }
   }
 
-  const isImage = (ext) => {
+  const getType = (ext) => {
     for(let name of [
       "jpg", "jpeg", "png", "gif", "bmp", "tiff", "tif",
       "webp", "heif", "heic", "ico", "avif",
       "psd", "ai", "eps", "raw", "cr2", "nef"
     ]){
       if(name == ext){
-        return true;
+        return "image";
       }
     }
-    return false;
+    for(let name of [
+      "wav", "mp3", "ogg"
+    ]){
+      if(name == ext){
+        return "audio";
+      }
+    }
+    return "other";
   }
 
   const get_thumbnail = (index) => {
     let ext = notes[index].image.split('.').reverse()[0];
-    if(isImage(ext.toLowerCase())){
-      return globalState.pocket.files.getURL(notes[index], notes[index].image);
-    } else {
-      return "null";
-    }
+    return {type: getType(ext.toLowerCase()), data: globalState.pocket.files.getURL(notes[index], notes[index].image)}
+
   }
 
   async function handleFileChange(e, index){ 
@@ -270,6 +269,7 @@
   }
 
   const deleteNote = async (index) => {
+    console.log("deleting");
     await globalState.pocket.collection('notes').delete(notes[index].id);
     notes.splice(index, 1);
     selected = -1;
@@ -286,8 +286,8 @@
       type: "note", 
       title: "",
       content: "",
-      x: window.scrollX + window.innerWidth / 2,
-      y: window.scrollY + window.innerHeight / 2
+      x: window.scrollX,
+      y: window.scrollY
     };
 
     const record = await globalState.pocket.collection('notes').create(data);
@@ -311,8 +311,8 @@
       editing: false,
       image: null,
       list: null,
-      x: window.scrollX + window.innerWidth / 2,
-      y: window.scrollY + window.innerHeight / 2
+      x: window.scrollX,
+      y: window.scrollY
     };
 
     await notes.push(data);
@@ -377,7 +377,7 @@
     `
     let notif = document.createElement('p1');
     notif.style.cssText = `
-      color: white;      
+      color: var(--text-color);      
     `
     notif.innerText = content;
     await div.appendChild(notif);
@@ -408,8 +408,8 @@
       type: "image", 
       title: "",
       uploading: false,
-      x: window.scrollX + window.innerWidth / 2,
-      y: window.scrollY + window.innerHeight / 2
+      x: window.scrollX,
+      y: window.scrollY
     };
 
     const record = await globalState.pocket.collection('notes').create(data);
@@ -435,8 +435,8 @@
           false
         ]
       },
-      x: window.scrollX + window.innerWidth / 2,
-      y: window.scrollY + window.innerHeight / 2
+      x: window.scrollX,
+      y: window.scrollY
     };
 
     const record = await globalState.pocket.collection('notes').create(data);
@@ -507,6 +507,23 @@
   }
 
   const sort = async () => {
+    // start by deleteing empty nodes 
+    let deleted = false;
+    for(let index = notes.length - 1; index >= 0; index--){
+      let note = notes[index];
+      if(note.title == "" && note.content == "" && note.image == "" && note.todo == null && note.editing == false){
+        await deleteNote(index);
+        deleted = true;
+      }
+    }
+
+    // sleep to ensure all of the deleted objects have time for the animation to play
+
+    if(deleted){
+      await sleep(550);
+    }
+
+
     collisionBounds = [];
     maxY = 0;
     let noteDivs = document.getElementsByClassName('note');
@@ -624,6 +641,63 @@
     }
   }
 
+  const playTime = (e, display, audio) => {
+    display.style.setProperty('width', `${Math.floor((audio.currentTime / audio.duration) * 100)}%`);
+  }
+
+  // what kinda hacky tomfoolery did I get up to here???
+
+  const addAudioListeners = (index) => {
+    const display = document.getElementById(`b${index}`);
+    const element = document.getElementById(`a${index}`);
+    element.addEventListener('ended', (e) => removeAudioListeners(e));
+    element.removeEventListener('play', (e) => playSound(index));
+    element.addEventListener('pause', (e) => pauseSound(index));
+    element.addEventListener('timeupdate', (e) => {
+      playTime(e, display, element);
+    });
+  }
+
+  const removeAudioListeners = (index) => {
+    const display = document.getElementById(`b${index}`);
+    const element = document.getElementById(`a${index}`);
+    element.removeEventListener('ended', (e) => removeAudioListeners(e));
+    element.addEventListener('play', (e) => playSound(index));
+    element.removeEventListener('pause', (e) => pauseSound(index));
+    element.removeEventListener('timeupdate', (e) => {
+      playTime(e, display, element);
+    });
+  }
+
+  const playSound = async (index) => {
+    const element = document.getElementById(`a${index}`);
+    await addAudioListeners(index);
+    notes[index].playing = true;
+    // @ts-ignore
+    element.play();
+  }
+
+  const pauseSound = async (index) => {
+    const audio = document.getElementById(`a${index}`);
+    await removeAudioListeners(index);
+    notes[index].playing = false;
+    // @ts-ignore
+    audio.pause();
+  }
+
+  const back = (index) => {
+    const audio = document.getElementById(`a${index}`);
+    // @ts-ignore
+    audio.currentTime -= 15;
+  }
+
+  const forward = (index) => {
+    const audio = document.getElementById(`a${index}`);
+    // @ts-ignore
+    audio.currentTime += 15;
+  }
+
+
 </script>
 
 <div class="viewport">
@@ -696,7 +770,71 @@
       {:else}
 
 
-          {#if get_thumbnail(notes.indexOf(note)) == "null"}
+          {#if get_thumbnail(notes.indexOf(note)).type == "image"}
+            <label for="uploadTrigger"
+              class="imagePlaceholder"
+              ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
+              ondragover={(e) => e.preventDefault()}
+            >
+              <img src="{get_thumbnail(notes.indexOf(note)).data}" class="thumbnailImage" alt="thumbnail" draggable="false"/>
+            </label>
+          {:else if get_thumbnail(notes.indexOf(note)).type == "audio" && globalState.experimental}
+            <label for="uploadTrigger"
+              class="imagePlaceholder"
+              ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
+              ondragover={(e) => e.preventDefault()}
+            >
+
+              <audio id="a{notes.indexOf(note)}">
+                <source src="{get_thumbnail(notes.indexOf(note)).data}">
+              </audio>
+              <button id="play{note.id}" style="visibility: hidden; position: fixed;" onclick={() => playSound(notes.indexOf(note))}>Play</button>
+              <button id="pause{note.id}" style="visibility: hidden; position: fixed;" onclick={() => pauseSound(notes.indexOf(note))}>Pause</button>
+              <button id="back{note.id}" style="visibility: hidden; position: fixed;" onclick={() => back(notes.indexOf(note))}>Back</button>
+              <button id="forward{note.id}" style="visibility: hidden; position: fixed;" onclick={() => forward(notes.indexOf(note))}>Forward</button>
+
+
+                <label for="back{note.id}">
+                  <svg fill="currentColor" class="mediumSvg hover" style="cursor: pointer;" viewBox="0 0 1301 1301">
+                    <!-- Rewind  -->
+                    <path d="M1125.5,650c0-71-13-138-40-201s-64-119-112-167-104-85-167-112c-63-26-130-39-201-39-134,0-250,49-347,146h127c18,0,33,6,46,19s19,28,19,45-6,34-19,47-28,20-46,19H109.5c-18,0-33-6-46-19s-19-28-19-46V72c0-19,6-34,19-47,13-12,28-18,46-18s33,6,46,18c13,13,19,28,19,47v104C295.5,59,439.5,0,604.5,0s173,17,252,50,149,80,209,140,107,129,141,208c33,79,50,163,50,252s-29,227-88,328c-28,49-62,93-101,132-39,40-83,74-131,102-49,29-101,51-156,66s-112,23-171,23c-87,0-169-16-248-48-79-31-151-79-215-143s-19-28-19-46,7-34,20-46c13-11,28-17,46-17s33,6,46,19c102,100,225,150,370,150s140-14,203-42c63-27,119-65,166-114,47-48,83-104,109-167,25-63,38-128,38-197Z"/>
+                  </svg>
+                </label>
+              {#if note.playing}
+                <label for="pause{note.id}">
+                  <svg fill="currentColor" class="bigSvg hover" style="cursor: pointer" viewBox="0 0 1289 1289">
+                    <!-- Pause  -->
+                    <path d="M207,1228V65c-1-18,5-33,18-46S253,0,272,0s33,6,46,19c12,13,18,28,18,46l1,1163c0,17-6,32-19,43-13,12-28,18-46,18s-33-6-46-17-19-26-19-44ZM922,1228V65c0-18,6-33,19-46S969,0,988,0s33,6,46,19c12,13,18,28,18,46l1,1163c0,17-6,32-19,43-13,12-28,18-46,18s-34-6-47-17-19-26-19-44Z"/>
+                  </svg>
+                </label>
+              {:else}
+                <label for="play{note.id}">
+                  <svg fill="currentColor" class="bigSvg hover" style="cursor: pointer" viewBox="0 0 1289 1289">
+                    <!-- Play  -->
+                    <path d="M7.5,1235V62c0-12,2-21,6-26,5-11,13-20,23-26C46.5,3,57.5,0,68.5,0s19,2,30,7l1150,574c12,5,22,13,29,24,7,10,10,22,10,35s-3,25-10,36-17,19-30,24L98.5,1290c-7,3-14,5-21,5-11,0-23-3-36-10-22-11-33-28-34-50ZM1079.5,643L121.5,161v972l958-490Z"/>
+                  </svg>
+                </label>
+              {/if}
+
+                <label for="forward{note.id}">
+                  <svg fill="currentColor" class="mediumSvg hover" style="cursor: pointer;" viewBox="0 0 1301 1301">
+                    <!-- Forward -->
+                    <path d="M174.9,650c0-71,13-138,40-201,27-63,64.1-119,112.1-167,48.1-48,104.1-85,167.2-112,63.1-26,130.2-39,201.2-39,134.2,0,250.3,49,347.4,146h-127.2c-18,0-33,6-46.1,19s-19,28-19,45,6,34,19,47,28,20,46.1,19h276.3c18,0,33-6,46.1-19s19-28,19-46V72c0-19-6-34-19-47-13-12-28-18-46.1-18s-33,6-46.1,18c-13,13-19,28-19,47v104C1005.9,59,861.8,0,696.6,0s-173.2,17-252.3,50-149.2,80-209.3,140c-60.1,60-107.1,129-141.2,208-33,79-50.1,163-50.1,252s29,227,88.1,328c28,49,62.1,93,101.1,132,39,40,83.1,74,131.2,102,49.1,29,101.1,51,156.2,66s112.1,23,171.2,23c87.1,0,169.2-16,248.3-48,79.1-31,151.2-79,215.3-143s19-28,19-46-7-34-20-46c-13-11-28-17-46.1-17s-33,6-46.1,19c-102.1,100-225.3,150-370.5,150s-140.2-14-203.2-42c-63.1-27-119.1-65-166.2-114-47.1-48-83.1-104-109.1-167-25-63-38-128-38-197Z"/>
+                  </svg>
+                </label>
+              <div class="playbarContainer">
+                <div class="playbar" id="b{notes.indexOf(note)}">
+                </div>
+              </div>
+
+
+            </label>
+            <textarea
+              class="body"
+              placeholder="Content"
+              readonly
+            >{note.image}</textarea>
+          {:else}
             <label for="uploadTrigger"
               class="imagePlaceholder"
               ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
@@ -713,14 +851,6 @@
               placeholder="Content"
               readonly
             >{note.image}</textarea>
-          {:else}
-            <label for="uploadTrigger"
-              class="imagePlaceholder"
-              ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
-              ondragover={(e) => e.preventDefault()}
-            >
-              <img src="{get_thumbnail(notes.indexOf(note))}" class="thumbnailImage" alt="thumbnail" draggable="false"/>
-            </label>
           {/if}
 
       {/if}
@@ -932,6 +1062,21 @@
       </span>
 
       <span class="inline">
+        <p1 class="title">Text Color</p1>
+      </span>
+        
+      <span class="inline">
+        <p1 class="body" style="color: #5f5f5f">#</p1>
+        <textarea
+            class="body"
+            bind:value={globalState.textColor}
+        ></textarea>
+        <div class="example" style="background-color: #{globalState.textColor}">
+
+        </div>
+      </span>
+
+      <span class="inline">
         <p1 class="title">Max Note Width</p1>
       </span>
         
@@ -954,6 +1099,24 @@
         ></textarea>
         <p1 class="body" style="color: #5f5f5f">px</p1>
       </span>
+
+      <span class="inline">
+        <p1 class="title">Experimental Features</p1>
+      </span>
+        
+      <span class="inline">
+        <button class="toggleTodo" id="experiment" onclick={() => {globalState.experimental = !globalState.experimental}}>Toggle</button>
+        <div class="todoBorder">
+          <label for="experiment" class="todoButton" style="{globalState.experimental ? "background-color: var(--main-color)" : ""}"></label>
+        </div>
+        {#if globalState.experimental}
+          <p1 class="body" style="color: #5f5f5f">Enabled</p1>
+        {:else}
+          <p1 class="body" style="color: #5f5f5f">Disabled</p1>
+        {/if}
+      </span>
+
+
 
       <span class="inline">
         <p1 class="title">Note Server</p1>
@@ -1110,10 +1273,29 @@
 
 <style>
 
+  .playbarContainer {
+    width: 100%;
+    background: var(--inactive-color);
+    border: 2px solid var(--text-color);
+    height: 24px;
+    padding: 3px;
+    display: flex;
+    justify-content: left;
+    box-sizing: border-box;
+    border-radius: 15px;
+  }
+
+  .playbar {
+    background-color: var(--main-color);
+    display: flex;
+    height: 100%;
+    border-radius: 15px;
+  }
+
   .example {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(255, 255, 255, 0.87);
+    border: 2px solid var(--text-color);
     box-sizing: border-box;
   }
 
@@ -1124,6 +1306,10 @@
 
   .bigSvg {
     max-width: 64px;
+  }
+
+  .mediumSvg {
+    max-width: 36px;
   }
 
   .inlineSvg {
@@ -1166,7 +1352,7 @@
   .todoBorder {
     width: 20px;
     height: 20px;
-    border: 3px solid white;
+    border: 3px solid var(--text-color);
     display: flex;
     box-sizing: border-box;
     border-radius: 100%;
@@ -1254,7 +1440,7 @@
     width: 64px;
     height: 64px;
     top: 36px;
-    left: calc(100vw - 100px);
+    right: 36px;
     font-size: 64px;
     box-sizing: border-box;
     align-items: center;
@@ -1285,7 +1471,7 @@
     align-items: center;
     justify-content: center;
     width: fit-content;
-    color: rgba(255, 255, 255, 0.87);
+    color: var(--text-color);
     cursor: pointer;
     transition:
       color 250ms
@@ -1337,14 +1523,14 @@
     font-size: 20px;
     font-family: monospace;
     line-height: 30px;
-    color: rgba(255, 255, 255, 0.87);
+    color: var(--text-color);
   }
 
   .title {
     font-size: 32px;
     font-family: monospace;
     font-weight: bold;
-    color: white;
+    color: var(--text-color);
     margin: 0;
   }
 

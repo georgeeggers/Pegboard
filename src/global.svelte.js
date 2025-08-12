@@ -6,8 +6,10 @@ export const globalState = $state({
     dotColor: "f8fBf8",
     backgroundColor: '1a1a1a',
     hoverColor: '947900',
+    textColor: "f8f8f8",
     noteWidth: '500',
     imageWidth: '500',
+    experimental: false,
     pocket: new PocketBase('http://127.0.0.1:8090'),
     url: 'http://127.0.0.1:8090'
 })
