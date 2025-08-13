@@ -16,7 +16,10 @@
       '--dot-color': globalState.dotColor,
       '--bg-color': globalState.backgroundColor,
       '--hover-color': globalState.hoverColor,
-      '--text-color': globalState.textColor
+      '--text-color': globalState.textColor,
+      '--title-color': globalState.titleColor,
+      '--inactive-color': globalState.inactiveColor,
+      '--note-color': globalState.activeColor
     };
 
     for (const [varName, value] of Object.entries(colorVars)) {
@@ -33,6 +36,12 @@
           mainColor: globalState.mainColor,
           dotColor: globalState.dotColor,
           backgroundColor: globalState.backgroundColor,
+          hoverColor: globalState.hoverColor,
+          textColor: globalState.textColor,
+          experimental: globalState.experimental,
+          titleColor: globalState.titleColor,
+          inactiveColor: globalState.inactiveColor,
+          activeColor: globalState.activeColor,
           noteWidth: globalState.noteWidth,
           imageWidth: globalState.imageWidth,
           url: globalState.url
@@ -48,11 +57,17 @@
       }
 
       globalState.mainColor = settings.mainColor;
-      globalState.dotColor = settings.dotColor
+      globalState.dotColor = settings.dotColor;
       globalState.backgroundColor = settings.backgroundColor;
+      globalState.hoverColor = settings.hoverColor;
+      globalState.textColor = settings.textColor;
+      globalState.experimental = settings.experimental;
+      globalState.titleColor = settings.titleColor;
+      globalState.inactiveColor = settings.inactiveColor;
+      globalState.activeColor = settings.activeColor;
       globalState.noteWidth = settings.noteWidth;
       globalState.imageWidth = settings.imageWidth;
-      globalState.url = settings.url;
+      globalState.url = settings.url; 
   }
 
   const clearSettings = () => {
@@ -152,6 +167,7 @@
       unsubscribe = await globalState.pocket
         .collection("notes")
         .subscribe("*", async ({ action, record }) => {
+          console.log(action);
           if (action == "create") {
             let thing = record;
             thing.editing = false;
@@ -1062,6 +1078,21 @@
       </span>
 
       <span class="inline">
+        <p1 class="title">Title Color</p1>
+      </span>
+        
+      <span class="inline">
+        <p1 class="body" style="color: #5f5f5f">#</p1>
+        <textarea
+            class="body"
+            bind:value={globalState.titleColor}
+        ></textarea>
+        <div class="example" style="background-color: #{globalState.titleColor}">
+
+        </div>
+      </span>
+
+      <span class="inline">
         <p1 class="title">Text Color</p1>
       </span>
         
@@ -1072,6 +1103,36 @@
             bind:value={globalState.textColor}
         ></textarea>
         <div class="example" style="background-color: #{globalState.textColor}">
+
+        </div>
+      </span>
+
+      <span class="inline">
+        <p1 class="title">Active Node Color</p1>
+      </span>
+        
+      <span class="inline">
+        <p1 class="body" style="color: #5f5f5f">#</p1>
+        <textarea
+            class="body"
+            bind:value={globalState.activeColor}
+        ></textarea>
+        <div class="example" style="background-color: #{globalState.activeColor}">
+
+        </div>
+      </span>
+
+      <span class="inline">
+        <p1 class="title">Inactive Node Color</p1>
+      </span>
+        
+      <span class="inline">
+        <p1 class="body" style="color: #5f5f5f">#</p1>
+        <textarea
+            class="body"
+            bind:value={globalState.inactiveColor}
+        ></textarea>
+        <div class="example" style="background-color: #{globalState.inactiveColor}">
 
         </div>
       </span>
@@ -1530,7 +1591,7 @@
     font-size: 32px;
     font-family: monospace;
     font-weight: bold;
-    color: var(--text-color);
+    color: var(--title-color);
     margin: 0;
   }
 
