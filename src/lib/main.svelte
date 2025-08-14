@@ -1,7 +1,7 @@
 <script>
   import { scale } from "svelte/transition";
   import { globalState, refresh_pocket } from "../global.svelte";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   // contains objects that have titles, bodies, colors, and x and y coords
   let notes = $state([]);
   let selected = $state(-1);
@@ -11,6 +11,8 @@
   let snapSize = $state(1);
 
   $effect(() => {
+    themeName = "MyTheme";
+    isCustom = true;
     const colorVars = {
       '--main-color': globalState.mainColor,
       '--dot-color': globalState.dotColor,
@@ -25,29 +27,65 @@
     for (const [varName, value] of Object.entries(colorVars)) {
       document.documentElement.style.setProperty(varName, `#${value}`);
     }
+
+    document.documentElement.style.setProperty('--blur-radius', `${globalState.blurRadius}px`);
   });
   
   $effect(() => {
     refresh_pocket(globalState.url)
   })
 
+  let isCustom = $state(false);
+  let customThemes = $state([]);
+
   const saveSettings = () => {
-      const prefs = {
-          mainColor: globalState.mainColor,
-          dotColor: globalState.dotColor,
-          backgroundColor: globalState.backgroundColor,
-          hoverColor: globalState.hoverColor,
-          textColor: globalState.textColor,
-          experimental: globalState.experimental,
-          titleColor: globalState.titleColor,
-          inactiveColor: globalState.inactiveColor,
-          activeColor: globalState.activeColor,
-          noteWidth: globalState.noteWidth,
-          imageWidth: globalState.imageWidth,
-          url: globalState.url
-      }
-      localStorage.setItem("settings", JSON.stringify(prefs));
-      addNotification("Settings saved!")
+    if(isCustom){
+      customThemes.push(JSON.stringify({
+        name: themeName,
+        backgroundColor: globalState.backgroundColor,
+        activeColor: globalState.activeColor,
+        inactiveColor: globalState.inactiveColor,
+        mainColor: globalState.mainColor,
+        hoverColor: globalState.hoverColor,
+        textColor: globalState.textColor,
+        titleColor: globalState.titleColor,
+        dotColor: globalState.dotColor,
+        blurRadius: globalState.blurRadius
+      }));
+
+      themes.push({
+        name: themeName,
+        backgroundColor: globalState.backgroundColor,
+        activeColor: globalState.activeColor,
+        inactiveColor: globalState.inactiveColor,
+        mainColor: globalState.mainColor,
+        hoverColor: globalState.hoverColor,
+        textColor: globalState.textColor,
+        titleColor: globalState.titleColor,
+        dotColor: globalState.dotColor,
+        blurRadius: globalState.blurRadius
+      })
+    }
+    const prefs = {
+      mainColor: globalState.mainColor,
+      dotColor: globalState.dotColor,
+      backgroundColor: globalState.backgroundColor,
+      hoverColor: globalState.hoverColor,
+      textColor: globalState.textColor,
+      experimental: globalState.experimental,
+      titleColor: globalState.titleColor,
+      inactiveColor: globalState.inactiveColor,
+      activeColor: globalState.activeColor,
+      noteWidth: globalState.noteWidth,
+      imageWidth: globalState.imageWidth,
+      blurRadius: globalState.blurRadius,
+      theme: themeName,
+      customs: customThemes,
+      url: globalState.url
+    }
+    isCustom = false;
+    localStorage.setItem("settings", JSON.stringify(prefs));
+    addNotification("Settings saved!");
   }
 
   const loadSettings = async () => {
@@ -67,7 +105,14 @@
       globalState.activeColor = settings.activeColor;
       globalState.noteWidth = settings.noteWidth;
       globalState.imageWidth = settings.imageWidth;
-      globalState.url = settings.url; 
+      globalState.url = settings.url;
+      globalState.blurRadius = settings.blurRadius;
+      themeName = settings.theme;
+
+      for(let i of settings.customs){
+        themes.push(JSON.parse(i));
+      }
+
   }
 
   const clearSettings = () => {
@@ -78,6 +123,115 @@
     }
     addNotification("Settings cleared! Reload for changes to take effect")
   }
+
+  let themeName = $state("Default")
+
+  const loadTheme = async (theme) => {
+      globalState.hoverColor = theme.hoverColor;
+      globalState.textColor = theme.textColor;
+      globalState.titleColor = theme.titleColor;
+      globalState.inactiveColor = theme.inactiveColor;
+      globalState.activeColor = theme.activeColor;
+      globalState.backgroundColor = theme.backgroundColor;
+      globalState.dotColor = theme.dotColor;
+      globalState.mainColor = theme.mainColor;
+      globalState.blurRadius = theme.blurRadius;
+      await tick;
+      themeName = theme.name;
+      isCustom = false;
+  }
+
+  /*
+
+  --bg-color: #1a1a1a;
+  --note-color: #2f2f2f;
+  --inactive-color: #252525;
+  --main-color: #c5a103;
+  --hover-color: #947900;
+  --text-color: #f8f8f8;
+  --title-color: #f8f8f8;
+  --dot-color: #F8FBF8;
+
+  */
+
+  let themes = $state([
+    {
+      name: "Default",
+      backgroundColor: "1a1a1a",
+      activeColor: "2f2f2f",
+      inactiveColor: "252525",
+      mainColor: "c5a103",
+      hoverColor: "947900",
+      textColor: "f8f8f8",
+      titleColor: "f8f8f8",
+      dotColor: "f8f8f8",
+      blurRadius: '0'
+
+    },
+    {
+      name: "Cyber",
+      backgroundColor: "080808e0",
+      activeColor: "151515",
+      inactiveColor: "10101088",
+      mainColor: "007f77",
+      hoverColor: "006e55",
+      textColor: "009f77",
+      titleColor: "009f77",
+      dotColor: "009f77",
+      blurRadius: '7'
+
+    },
+    {
+      name: "Light",
+      backgroundColor: "f8f8f8",
+      activeColor: "c8c8c8",
+      inactiveColor: "e8e8e8",
+      mainColor: "c5a103",
+      hoverColor: "947900",
+      textColor: "1a1a1a",
+      titleColor: "1a1a1a",
+      dotColor: "000000",
+      blurRadius: '0'
+
+    },
+    {
+      name: "Midnight",
+      backgroundColor: "000000",
+      activeColor: "1a1a1a",
+      inactiveColor: "121212",
+      mainColor: "f8f8f8",
+      hoverColor: "f8f8f8",
+      textColor: "ffffff",
+      titleColor: "ffffff",
+      dotColor: "000000",
+      blurRadius: '0'
+    },    
+    {
+      name: "Mocha",
+      backgroundColor: "1e1e2e",
+      activeColor: "45475a",
+      inactiveColor: "313244",
+      mainColor: "ed8796",
+      hoverColor: "ee99a0",
+      textColor: "cdd6f4",
+      titleColor: "b4befe",
+      dotColor: "b4befe",
+      blurRadius: '0'
+    },
+    {
+      name: "Glassy",
+      backgroundColor: "313244",
+      activeColor: "f8f8f880",
+      inactiveColor: "e0e0e080",
+      mainColor: "ed8796",
+      hoverColor: "ee99a0",
+      textColor: "1a1a1a",
+      titleColor: "0e0e0e",
+      dotColor: "ed8796",
+      blurRadius: '8'
+    }
+
+  ])
 
   let dragLogic = (e) => {
     if(dragging){
@@ -100,7 +254,7 @@
       notes[selected].x = (Math.round(notes[selected].x / snapSize) * snapSize);
       notes[selected].y = (Math.round(notes[selected].y / snapSize) * snapSize);
 
-      if(notes[selected].type != "settings"){
+      if(notes[selected].type != "settings" && notes[selected].type != "style"){
         const _record = await globalState.pocket.collection('notes').update(notes[selected].id, notes[selected]);
       }
     }
@@ -156,6 +310,7 @@
   let unsubscribe;
   onMount(async () => {
     await loadSettings();
+    isCustom = false;
     try {
       const response = await globalState.pocket.collection("notes").getFullList({
         sort: "-created",
@@ -428,7 +583,7 @@
       y: window.scrollY
     };
 
-    const record = await globalState.pocket.collection('notes').create(data);
+    const _record = await globalState.pocket.collection('notes').create(data);
 
     let temp = document.getElementById((notes.length - 1).toString());
     temp.addEventListener('mousedown', mouseDownLogic);
@@ -455,7 +610,7 @@
       y: window.scrollY
     };
 
-    const record = await globalState.pocket.collection('notes').create(data);
+    const _record = await globalState.pocket.collection('notes').create(data);
 
     let temp = document.getElementById((notes.length - 1).toString());
     temp.addEventListener('mousedown', mouseDownLogic);
@@ -522,9 +677,18 @@
     }
   }
 
+  const deleteEmpty = async () => {
+    for(let index = notes.length - 1; index >= 0; index--){
+      let note = notes[index];
+      if(note.title == "" && note.content == "" && note.image == "" && note.todo == null && note.editing == false){
+        await deleteNote(index);
+      }
+    }
+  }
+
   const sort = async () => {
-    // start by deleteing empty nodes 
     let deleted = false;
+
     for(let index = notes.length - 1; index >= 0; index--){
       let note = notes[index];
       if(note.title == "" && note.content == "" && note.image == "" && note.todo == null && note.editing == false){
@@ -533,12 +697,9 @@
       }
     }
 
-    // sleep to ensure all of the deleted objects have time for the animation to play
-
     if(deleted){
       await sleep(550);
     }
-
 
     collisionBounds = [];
     maxY = 0;
@@ -657,7 +818,37 @@
     }
   }
 
-  const playTime = (e, display, audio) => {
+  const deleteStyles = () => {
+    for(let index = notes.length - 1; index >= 0; index--){
+      if(notes[index].type == "style"){
+        notes.splice(index, 1);
+      }
+    }
+  }
+
+  const style = async () => {
+    await deleteStyles();
+    let data = {
+      id: 'style',
+      type: "style", 
+      title: "",
+      content: "",
+      editing: false,
+      image: null,
+      list: null,
+      x: window.scrollX,
+      y: window.scrollY
+    };
+
+    await notes.push(data);
+
+    let temp = document.getElementById((notes.length - 1).toString());
+    temp.addEventListener('mousedown', mouseDownLogic);
+    temp.addEventListener('mouseup', mouseUpLogic);
+    selected = notes.length - 1;
+  }
+
+  const playTime = (_e, display, audio) => {
     display.style.setProperty('width', `${Math.floor((audio.currentTime / audio.duration) * 100)}%`);
   }
 
@@ -1017,6 +1208,61 @@
           </button>
         {/if}
     {:else if note.type == "settings"}
+
+      <span class="inline">
+        <p1 class="title">Max Note Width</p1>
+      </span>
+        
+      <span class="inline">
+        <textarea
+            class="body"
+            bind:value={globalState.noteWidth}
+        ></textarea>
+        <p1 class="body" style="color: #5f5f5f">px</p1>
+      </span>
+
+      <span class="inline">
+        <p1 class="title">Max Image Width</p1>
+      </span>
+        
+      <span class="inline">
+        <textarea
+            class="body"
+            bind:value={globalState.imageWidth}
+        ></textarea>
+        <p1 class="body" style="color: #5f5f5f">px</p1>
+      </span>
+
+      <span class="inline">
+        <p1 class="title">Experimental Features</p1>
+      </span>
+        
+      <span class="inline">
+        <button class="toggleTodo" id="experiment" onclick={() => {globalState.experimental = !globalState.experimental}}>Toggle</button>
+        <div class="todoBorder">
+          <label for="experiment" class="todoButton" style="{globalState.experimental ? "background-color: var(--main-color)" : ""}"></label>
+        </div>
+        {#if globalState.experimental}
+          <p1 class="body" style="color: #5f5f5f">Enabled</p1>
+        {:else}
+          <p1 class="body" style="color: #5f5f5f">Disabled</p1>
+        {/if}
+      </span>
+
+      <span class="inline">
+        <p1 class="title">Note Server</p1>
+      </span>
+        
+      <span class="inline">
+        
+        <textarea
+            class="body"
+            bind:value={globalState.url}
+        ></textarea>
+      </span>
+      
+    {:else if note.type == "style"}
+
       <span class="inline">
         <p1 class="title">Main Color</p1>
       </span>
@@ -1128,80 +1374,67 @@
         
       <span class="inline">
         <p1 class="body" style="color: #5f5f5f">#</p1>
-        <textarea
-            class="body"
-            bind:value={globalState.inactiveColor}
-        ></textarea>
-        <div class="example" style="background-color: #{globalState.inactiveColor}">
-
+          <textarea
+              class="body"
+              bind:value={globalState.inactiveColor}
+          ></textarea>
+          <div class="example" style="background-color: #{globalState.inactiveColor}">
         </div>
       </span>
 
       <span class="inline">
-        <p1 class="title">Max Note Width</p1>
+        <p1 class="title">Blur Radius</p1>
       </span>
         
       <span class="inline">
         <textarea
-            class="body"
-            bind:value={globalState.noteWidth}
+          class="body"
+          bind:value={globalState.blurRadius}
         ></textarea>
         <p1 class="body" style="color: #5f5f5f">px</p1>
       </span>
 
       <span class="inline">
-        <p1 class="title">Max Image Width</p1>
-      </span>
-        
-      <span class="inline">
-        <textarea
-            class="body"
-            bind:value={globalState.imageWidth}
-        ></textarea>
-        <p1 class="body" style="color: #5f5f5f">px</p1>
+        <p1 class="title">Select Theme</p1>
       </span>
 
-      <span class="inline">
-        <p1 class="title">Experimental Features</p1>
-      </span>
-        
-      <span class="inline">
-        <button class="toggleTodo" id="experiment" onclick={() => {globalState.experimental = !globalState.experimental}}>Toggle</button>
-        <div class="todoBorder">
-          <label for="experiment" class="todoButton" style="{globalState.experimental ? "background-color: var(--main-color)" : ""}"></label>
-        </div>
-        {#if globalState.experimental}
-          <p1 class="body" style="color: #5f5f5f">Enabled</p1>
-        {:else}
-          <p1 class="body" style="color: #5f5f5f">Disabled</p1>
-        {/if}
-      </span>
+      <div class="themeContainer">
+        {#each themes as theme}
+          <div class="inline">
+            <button class="body themeSelector" onclick={() => loadTheme(themes[themes.indexOf(theme)])} style="{themeName == theme.name ? "color: var(--main-color)" : ""}">{theme.name}</button>
+            <div class="styleExample" style="background-color: #{theme.mainColor}; border: 2px solid #{theme.textColor} !important;"></div>
+            <div class="styleExample" style="background-color: #{theme.hoverColor}; border: 2px solid #{theme.textColor} !important;"></div>
+            <div class="styleExample" style="background-color: #{theme.activeColor}; border: 2px solid #{theme.textColor} !important;"></div>
+            <div class="styleExample" style="background-color: #{theme.backgroundColor}; border: 2px solid #{theme.textColor} !important;"></div>
+          </div>
+        {/each}
+      </div>
 
-
+      {#if isCustom}
 
       <span class="inline">
-        <p1 class="title">Note Server</p1>
+        <p1 class="title">Custom Theme</p1>
       </span>
-        
-      <span class="inline">
-        
-        <textarea
-            class="body"
-            bind:value={globalState.url}
-        ></textarea>
-      </span>
+      <textarea
+        class="body"
+        bind:value={themeName}
+      >
+      </textarea>
+
+      {/if}
 
     {/if}
 
     <span class="controlBar">
-      {#if note.type != "settings"}
-      <button onclick={() => edit(notes.indexOf(note))} class="controlButton" style="{note.editing ? "color: var(--main-color);" : ""}">
-        <svg class="controlSvg" fill="currentColor" viewBox="0 0 2589 2589">
-          <!-- Edit  -->
-          <path d="M1629,239l93.5,91.6c10.8,10.8,23.4,16.2,36,16.2s28.8-5.4,43.2-18c52.1-52.1,97.1-77.3,134.8-77.3s64.7,16.2,97.1,46.7l253.5,253.3c32.4,32.3,48.5,64.7,48.5,98.8s-7.2,43.1-19.8,62.9c-12.6,19.8-32.4,43.1-59.3,70.1-10.8,12.6-16.2,27-16.2,39.5s5.4,25.2,16.2,35.9l93.5,93.4c7.2,9,18,12.6,34.2,12.6s28.8-5.4,37.8-16.2c88.1-88,142-172.5,158.2-253.3,16.2-80.9,5.4-35.9,5.4-55.7,0-73.7-32.4-145.5-98.9-215.6l-3.6-3.6-312.8-314.4-12.6-10.8C2089.2,32.3,2019.1,0,1945.4,0s-32.4,1.8-59.3,7.2c-86.3,21.6-169,73.7-248.1,156.3-12.6,12.6-19.8,28.7-19.8,44.9s3.6,21.6,10.8,30.5ZM2220.5,975.6l-604.1-607.3-3.6-3.6-3.6-3.6c-19.8-21.6-44.9-32.3-77.3-32.3s-64.7,10.8-88.1,34.1L39.6,1766.1s-7.2,9-18,23.4c-12.6,19.8-19.8,43.1-19.8,66.5l-1.8,628.8c0,23.4,5.4,43.1,18,59.3,12.6,16.2,28.8,28.7,50.3,35.9l10.8,3.6c12.6,3.6,27,5.4,39.6,5.4s9,0,12.6-1.8h10.8l596.9,1.8c39.6,0,71.9-14.4,95.3-44.9l1395.2-1392.4c23.4-23.4,36-50.3,36-80.9s-1.8-23.4-5.4-35.9c-1.8-16.2-10.8-32.3-25.2-46.7l-3.6-3.6-10.8-9h0ZM917,2127.3l-447.7-458.2L1526.5,612.7l454.9,452.8-1064.4,1061.8ZM231.9,1906.3l62.9-62.9,454.9,451-62.9,62.9-453.1-1.8-1.8-449.2Z"/>
-        </svg>
-      </button>
+      {#if note.type != "settings" && note.type != "style"}
+        <button onclick={() => edit(notes.indexOf(note))} class="controlButton" style="{note.editing ? "color: var(--main-color);" : ""}">
+          <svg class="controlSvg" fill="currentColor" viewBox="0 0 2589 2589">
+            <!-- Edit  -->
+            <path d="M1629,239l93.5,91.6c10.8,10.8,23.4,16.2,36,16.2s28.8-5.4,43.2-18c52.1-52.1,97.1-77.3,134.8-77.3s64.7,16.2,97.1,46.7l253.5,253.3c32.4,32.3,48.5,64.7,48.5,98.8s-7.2,43.1-19.8,62.9c-12.6,19.8-32.4,43.1-59.3,70.1-10.8,12.6-16.2,27-16.2,39.5s5.4,25.2,16.2,35.9l93.5,93.4c7.2,9,18,12.6,34.2,12.6s28.8-5.4,37.8-16.2c88.1-88,142-172.5,158.2-253.3,16.2-80.9,5.4-35.9,5.4-55.7,0-73.7-32.4-145.5-98.9-215.6l-3.6-3.6-312.8-314.4-12.6-10.8C2089.2,32.3,2019.1,0,1945.4,0s-32.4,1.8-59.3,7.2c-86.3,21.6-169,73.7-248.1,156.3-12.6,12.6-19.8,28.7-19.8,44.9s3.6,21.6,10.8,30.5ZM2220.5,975.6l-604.1-607.3-3.6-3.6-3.6-3.6c-19.8-21.6-44.9-32.3-77.3-32.3s-64.7,10.8-88.1,34.1L39.6,1766.1s-7.2,9-18,23.4c-12.6,19.8-19.8,43.1-19.8,66.5l-1.8,628.8c0,23.4,5.4,43.1,18,59.3,12.6,16.2,28.8,28.7,50.3,35.9l10.8,3.6c12.6,3.6,27,5.4,39.6,5.4s9,0,12.6-1.8h10.8l596.9,1.8c39.6,0,71.9-14.4,95.3-44.9l1395.2-1392.4c23.4-23.4,36-50.3,36-80.9s-1.8-23.4-5.4-35.9c-1.8-16.2-10.8-32.3-25.2-46.7l-3.6-3.6-10.8-9h0ZM917,2127.3l-447.7-458.2L1526.5,612.7l454.9,452.8-1064.4,1061.8ZM231.9,1906.3l62.9-62.9,454.9,451-62.9,62.9-453.1-1.8-1.8-449.2Z"/>
+          </svg>
+        </button>
       {/if}
+
       {#if note.type == "note" || note.type == "list"}
         <button onclick={() => copy(notes.indexOf(note))} class="controlButton">
 
@@ -1221,15 +1454,15 @@
 
         </button>
       {/if}
-      {#if note.type != "settings"}
-      <button onclick={() => deleteNote(notes.indexOf(note))} class="controlButton">
+      {#if note.type != "settings" && note.type != "style"}
+        <button onclick={() => deleteNote(notes.indexOf(note))} class="controlButton">
 
-        <svg class="controlSvg" fill="currentColor" viewBox="0 0 1480 1480">
-          <!-- Trash -->
-          <path d="M1225,582h57c19,0,34-6,47-19s19-28,19-47h1v-89c0-58-18-105-53-140s-88-57-150-58h-161c-1-31-8-61-21-89s-30-52-51-73c-22-21-47-38-75-50-29-11-59-17-90-17v3l-3-2-2-1c-31,0-61,6-89,17-29,12-54,28-76,49s-39,45-51,73c-13,29-19,59-20,90h-167c-64,0-115,19-154,56-37,37-55,84-55,142v89h1c0,19,7,34,20,47s28,19,47,19h55l59,654c9,87,35,150,80,189,22,19,49,33,81,42,31,9,68,13,111,13h316c43,0,80-4,111-13s57-23,78-42c43-39,69-102,77-189l58-654ZM749,112v1c34,0,62,11,83,34,21,22,32,49,33,82h-238c1-33,12-60,33-83,21-22,49-33,83-33h2l2-1h2ZM337,360h803c52,0,78,21,78,64v28H262v-28c0-42,25-63,75-64ZM906,1350h-329c-21,0-38-2-53-5s-28-9-39-17c-23-16-37-47-42-92l-59-653h711l-58,653c-5,46-18,77-40,93s-23,13-37,16c-15,3-33,5-54,5Z"/>
-        </svg>
+          <svg class="controlSvg" fill="currentColor" viewBox="0 0 1480 1480">
+            <!-- Trash -->
+            <path d="M1225,582h57c19,0,34-6,47-19s19-28,19-47h1v-89c0-58-18-105-53-140s-88-57-150-58h-161c-1-31-8-61-21-89s-30-52-51-73c-22-21-47-38-75-50-29-11-59-17-90-17v3l-3-2-2-1c-31,0-61,6-89,17-29,12-54,28-76,49s-39,45-51,73c-13,29-19,59-20,90h-167c-64,0-115,19-154,56-37,37-55,84-55,142v89h1c0,19,7,34,20,47s28,19,47,19h55l59,654c9,87,35,150,80,189,22,19,49,33,81,42,31,9,68,13,111,13h316c43,0,80-4,111-13s57-23,78-42c43-39,69-102,77-189l58-654ZM749,112v1c34,0,62,11,83,34,21,22,32,49,33,82h-238c1-33,12-60,33-83,21-22,49-33,83-33h2l2-1h2ZM337,360h803c52,0,78,21,78,64v28H262v-28c0-42,25-63,75-64ZM906,1350h-329c-21,0-38-2-53-5s-28-9-39-17c-23-16-37-47-42-92l-59-653h711l-58,653c-5,46-18,77-40,93s-23,13-37,16c-15,3-33,5-54,5Z"/>
+          </svg>
 
-      </button>
+        </button>      
       {:else}
         <button onclick={saveSettings} class="controlButton">
 
@@ -1249,14 +1482,27 @@
             </svg>
 
         </button>
-        <button onclick={deleteSettings} class="controlButton">
+        {#if note.type == "settings"}
 
-          <svg class="controlSvg" fill="currentColor" viewBox="0 0 1480 1480">
-            <!-- Trash -->
-            <path d="M1225,582h57c19,0,34-6,47-19s19-28,19-47h1v-89c0-58-18-105-53-140s-88-57-150-58h-161c-1-31-8-61-21-89s-30-52-51-73c-22-21-47-38-75-50-29-11-59-17-90-17v3l-3-2-2-1c-31,0-61,6-89,17-29,12-54,28-76,49s-39,45-51,73c-13,29-19,59-20,90h-167c-64,0-115,19-154,56-37,37-55,84-55,142v89h1c0,19,7,34,20,47s28,19,47,19h55l59,654c9,87,35,150,80,189,22,19,49,33,81,42,31,9,68,13,111,13h316c43,0,80-4,111-13s57-23,78-42c43-39,69-102,77-189l58-654ZM749,112v1c34,0,62,11,83,34,21,22,32,49,33,82h-238c1-33,12-60,33-83,21-22,49-33,83-33h2l2-1h2ZM337,360h803c52,0,78,21,78,64v28H262v-28c0-42,25-63,75-64ZM906,1350h-329c-21,0-38-2-53-5s-28-9-39-17c-23-16-37-47-42-92l-59-653h711l-58,653c-5,46-18,77-40,93s-23,13-37,16c-15,3-33,5-54,5Z"/>
-          </svg>
+          <button onclick={deleteSettings} class="controlButton">
 
-        </button>
+            <svg class="controlSvg" fill="currentColor" viewBox="0 0 1480 1480">
+              <!-- Trash -->
+              <path d="M1225,582h57c19,0,34-6,47-19s19-28,19-47h1v-89c0-58-18-105-53-140s-88-57-150-58h-161c-1-31-8-61-21-89s-30-52-51-73c-22-21-47-38-75-50-29-11-59-17-90-17v3l-3-2-2-1c-31,0-61,6-89,17-29,12-54,28-76,49s-39,45-51,73c-13,29-19,59-20,90h-167c-64,0-115,19-154,56-37,37-55,84-55,142v89h1c0,19,7,34,20,47s28,19,47,19h55l59,654c9,87,35,150,80,189,22,19,49,33,81,42,31,9,68,13,111,13h316c43,0,80-4,111-13s57-23,78-42c43-39,69-102,77-189l58-654ZM749,112v1c34,0,62,11,83,34,21,22,32,49,33,82h-238c1-33,12-60,33-83,21-22,49-33,83-33h2l2-1h2ZM337,360h803c52,0,78,21,78,64v28H262v-28c0-42,25-63,75-64ZM906,1350h-329c-21,0-38-2-53-5s-28-9-39-17c-23-16-37-47-42-92l-59-653h711l-58,653c-5,46-18,77-40,93s-23,13-37,16c-15,3-33,5-54,5Z"/>
+            </svg>
+
+          </button>
+
+        {:else}
+          <button onclick={deleteStyles} class="controlButton">
+
+            <svg class="controlSvg" fill="currentColor" viewBox="0 0 1480 1480">
+              <!-- Trash -->
+              <path d="M1225,582h57c19,0,34-6,47-19s19-28,19-47h1v-89c0-58-18-105-53-140s-88-57-150-58h-161c-1-31-8-61-21-89s-30-52-51-73c-22-21-47-38-75-50-29-11-59-17-90-17v3l-3-2-2-1c-31,0-61,6-89,17-29,12-54,28-76,49s-39,45-51,73c-13,29-19,59-20,90h-167c-64,0-115,19-154,56-37,37-55,84-55,142v89h1c0,19,7,34,20,47s28,19,47,19h55l59,654c9,87,35,150,80,189,22,19,49,33,81,42,31,9,68,13,111,13h316c43,0,80-4,111-13s57-23,78-42c43-39,69-102,77-189l58-654ZM749,112v1c34,0,62,11,83,34,21,22,32,49,33,82h-238c1-33,12-60,33-83,21-22,49-33,83-33h2l2-1h2ZM337,360h803c52,0,78,21,78,64v28H262v-28c0-42,25-63,75-64ZM906,1350h-329c-21,0-38-2-53-5s-28-9-39-17c-23-16-37-47-42-92l-59-653h711l-58,653c-5,46-18,77-40,93s-23,13-37,16c-15,3-33,5-54,5Z"/>
+            </svg>
+
+          </button>
+        {/if}
       {/if}
 
     </span>
@@ -1290,15 +1536,7 @@
   </svg>
 
 </button>
-<button onclick={addImage} class="menuButton" style='{menuToggle ? "transform: translateY(240px);" : ""}'>
-
-  <svg viewBox="0 0 1461 1461" fill="currentColor">
-    <!-- File -->
-    <path d="M187,65v1332c0,19,7,35,22,48l8,6,3,2c8,4,17,7,26,8h1061c17-1,32-8,44-21,11-12,17-26,17-43v-884c0-17-6-32-18-45-4-5-8-9-13-13L904,27c-9-9-19-17-30-22-4-1-7-2-7-2l-12-3H251c-18,0-33,6-45,18s-19,28-19,47ZM799,553c9,11,20,19,33,23l12,2h394v753l-921,1V129l468,1v384c0,15,5,28,14,39ZM920,228l217,215h-217v-215Z"/>
-  </svg>
-
-</button>
-<button onclick={addTodo} class="menuButton" style='{menuToggle ? "transform: translateY(320px);" : ""}'>
+<button onclick={addTodo} class="menuButton" style='{menuToggle ? "transform: translateY(240px);" : ""}'>
 
   <svg fill="currentColor" viewBox="0 0 1281 1281">
     <!-- Todo  -->
@@ -1306,7 +1544,25 @@
   </svg>
 
 </button>
-<button onclick={settings} class="menuButton" style='{menuToggle ? "transform: translateY(400px);" : ""}'>
+<button onclick={sort} class="styleButton" style='{menuToggle ? "transform: translateY(320px);" : ""}'>
+
+  <svg fill="currentColor" viewBox="0 0 1382 1382">
+    <!-- Refresh -->
+    <path fill="currentColor" d="M1080.5,320l-103-2c-19,0-34,6-46,19-13,13-19,28-19,46s6,34,19,47c12,13,28,19,47,18l270,5h7c18-1,33-8,45-21,11-12,17-27,17-45v-3l1-267c0-19-6-35-19-48-13-12-28-18-47-19-18,0-33,6-45,18s-19,29-19,48l-1,118c-60-72-133-129-219-171C879.5,21,787.5,0,692.5,0s-155,13-229,39c-75,26-142,63-201,112-62,50-112,109-151,178s-64,146-74,229l-2,8c-1,3-1,7-1,13,0,19,7,35,21,47,14,13,30,19,48,19s27-4,38-13c11-8,19-20,24-37,7-65,24-125,53-182s67-106,114-149c47-42,101-75,163-98,61-23,127-35,197-35s149,18,218,54c61,31,117,76,170,135ZM300.5,1062l104,2c19-1,34-7,47-20s18-27,18-46c-1-19-7-34-19-47-12-12-28-18-47-18l-262-4s-5-1-11-1c-18,1-33,7-46,19s-19,27-20,45v4l-1,269c-1,19,6,35,19,47,13,13,29,19,48,19s33-6,45-19,18-28,18-47v-116c60,72,133,129,220,170,88,42,180,63,275,63s154-13,229-40c75-26,142-63,202-112,61-49,112-109,151-178s64-146,74-229l1-8c1-7,2-11,2-14,0-19-7-34-21-47-15-12-31-18-49-18s-27,4-38,12c-11,9-19,22-24,39-7,67-25,129-54,186s-66,106-113,147-101,73-162,96-127,34-198,34-147-18-217-54c-61-31-118-76-171-134Z"/>
+  </svg>
+
+</button>
+
+<button onclick={style} class="styleButton" style='{menuToggle ? "transform: translateY(400px);" : ""}'>
+
+  <svg fill="currentColor" viewBox="0 0 1377 1377">
+    <!-- Droplet -->
+    <path d="M193,870c0-49,6-94,19-135,13-40,29-78,49-114,1-2,2-5,2-5l2-2,2-3,2-4L624,37c1-6,6-13,14-20,7-7,15-11,24-14,7-2,15-3,23-3,13,0,24,2,33,7s16,12,21,19l370,582c5,7,8,13,9,17,20,36,36,74,48,113s18,83,18,132-12,135-37,196c-25,62-59,116-104,162-45,47-98,84-157,110-60,26-124,39-193,39h-9c-69,0-133-13-193-40-60-26-112-62-157-109-45-46-79-100-104-162-25-61-37-127-37-196ZM996,666l-311-496-304,495-2,3c-38,64-57,133-57,206s9,100,27,146c17,46,42,86,75,121s71,62,116,81c44,19,92,29,143,29h10c51,0,99-10,144-29s83-46,116-81,58-75,76-121c17-46,26-95,26-146,0-73-19-140-56-202l-3-6ZM880,880v-13c0-13,5-24,14-32s19-12,31-12,22,4,31,11,13,18,13,32v14c0,41-6,80-19,115-13,36-32,67-56,93-25,27-55,48-90,63s-73,22-116,22h-6c-15,0-26-5-35-15-9-9-13-20-13-32s4-21,12-30c8-8,20-12,35-12h6c28,0,54-5,78-16,24-10,45-24,62-43,17-18,30-40,39-65s14-51,14-80Z"/>
+  </svg>
+
+</button>
+
+<button onclick={settings} class="styleButton" style='{menuToggle ? "transform: translateY(480px);" : ""}'>
 
   <svg viewBox="0 0 1361 1361" fill="currentColor">
     <!-- settings  -->
@@ -1314,15 +1570,29 @@
   </svg>
 
 </button>
-<button onclick={sort} class="menuButton" style='{menuToggle ? "transform: translateY(480px);" : ""}'>
+<!-- 
+<button onclick={addImage} class="menuButton" style='{menuToggle ? "transform: translateY(560px);" : ""}'>
 
-  <svg viewBox="0 0 1382 1382">
-    <!-- Refresh -->
-    <path fill="currentColor" d="M1080.5,320l-103-2c-19,0-34,6-46,19-13,13-19,28-19,46s6,34,19,47c12,13,28,19,47,18l270,5h7c18-1,33-8,45-21,11-12,17-27,17-45v-3l1-267c0-19-6-35-19-48-13-12-28-18-47-19-18,0-33,6-45,18s-19,29-19,48l-1,118c-60-72-133-129-219-171C879.5,21,787.5,0,692.5,0s-155,13-229,39c-75,26-142,63-201,112-62,50-112,109-151,178s-64,146-74,229l-2,8c-1,3-1,7-1,13,0,19,7,35,21,47,14,13,30,19,48,19s27-4,38-13c11-8,19-20,24-37,7-65,24-125,53-182s67-106,114-149c47-42,101-75,163-98,61-23,127-35,197-35s149,18,218,54c61,31,117,76,170,135ZM300.5,1062l104,2c19-1,34-7,47-20s18-27,18-46c-1-19-7-34-19-47-12-12-28-18-47-18l-262-4s-5-1-11-1c-18,1-33,7-46,19s-19,27-20,45v4l-1,269c-1,19,6,35,19,47,13,13,29,19,48,19s33-6,45-19,18-28,18-47v-116c60,72,133,129,220,170,88,42,180,63,275,63s154-13,229-40c75-26,142-63,202-112,61-49,112-109,151-178s64-146,74-229l1-8c1-7,2-11,2-14,0-19-7-34-21-47-15-12-31-18-49-18s-27,4-38,12c-11,9-19,22-24,39-7,67-25,129-54,186s-66,106-113,147-101,73-162,96-127,34-198,34-147-18-217-54c-61-31-118-76-171-134Z"/>
+  <svg viewBox="0 0 1461 1461" fill="currentColor">
+    <!-- File
+    <path d="M187,65v1332c0,19,7,35,22,48l8,6,3,2c8,4,17,7,26,8h1061c17-1,32-8,44-21,11-12,17-26,17-43v-884c0-17-6-32-18-45-4-5-8-9-13-13L904,27c-9-9-19-17-30-22-4-1-7-2-7-2l-12-3H251c-18,0-33,6-45,18s-19,28-19,47ZM799,553c9,11,20,19,33,23l12,2h394v753l-921,1V129l468,1v384c0,15,5,28,14,39ZM920,228l217,215h-217v-215Z"/>
   </svg>
 
 </button>
+-->
 
+<!-- Style toggle menu -->
+
+<!--
+<button onclick={deleteEmpty} class="styleButton" style='{menuToggle ? "transform: translateY(240px);" : ""}'>
+
+  <svg fill="currentColor" viewBox="0 0 1480 1480">
+    <!-- Trash --
+    <path d="M1225,582h57c19,0,34-6,47-19s19-28,19-47h1v-89c0-58-18-105-53-140s-88-57-150-58h-161c-1-31-8-61-21-89s-30-52-51-73c-22-21-47-38-75-50-29-11-59-17-90-17v3l-3-2-2-1c-31,0-61,6-89,17-29,12-54,28-76,49s-39,45-51,73c-13,29-19,59-20,90h-167c-64,0-115,19-154,56-37,37-55,84-55,142v89h1c0,19,7,34,20,47s28,19,47,19h55l59,654c9,87,35,150,80,189,22,19,49,33,81,42,31,9,68,13,111,13h316c43,0,80-4,111-13s57-23,78-42c43-39,69-102,77-189l58-654ZM749,112v1c34,0,62,11,83,34,21,22,32,49,33,82h-238c1-33,12-60,33-83,21-22,49-33,83-33h2l2-1h2ZM337,360h803c52,0,78,21,78,64v28H262v-28c0-42,25-63,75-64ZM906,1350h-329c-21,0-38-2-53-5s-28-9-39-17c-23-16-37-47-42-92l-59-653h711l-58,653c-5,46-18,77-40,93s-23,13-37,16c-15,3-33,5-54,5Z"/>
+  </svg>
+
+</button>
+-->
 
 <div 
   id="notifArea" 
@@ -1333,6 +1603,35 @@
 
 
 <style>
+
+  .themeContainer {
+    width: 100%;
+    height: fit-content;
+    box-sizing: border-box;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    display: flex;
+    flex-wrap: 1;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .themeSelector {
+    border-radius: 15px;
+    min-width: 120px;
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: row;
+    box-sizing: border-box;
+    padding: 5px;
+    cursor: pointer;
+    transition: color 500ms ease;
+  }
+
+  .themeSelector:hover {
+    color: var(--main-color);
+  }
 
   .playbarContainer {
     width: 100%;
@@ -1357,6 +1656,13 @@
     width: 20px;
     height: 20px;
     border: 2px solid var(--text-color);
+    box-sizing: border-box;
+  }
+
+  .styleExample {
+    width: 20px;
+    height: 20px;
+    border-radius: 100%;
     box-sizing: border-box;
   }
 
@@ -1525,6 +1831,35 @@
     color: var(--hover-color);
   }
 
+  .styleButton {
+    position: fixed;
+    width: 64px;
+    height: 64px;
+    top: 36px;
+    right: 36px;
+    font-size: 64px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    place-items: center;
+    text-align: center;
+    padding: 10px;
+    line-height: 0px;
+    border-radius: 100%;
+    border: none;
+    background-color: var(--note-color);
+    transition: 
+      color 500ms,
+      transform 500ms
+    ;
+    z-index: 3;
+    cursor: pointer;
+  }
+
+  .styleButton:hover {
+    color: var(--hover-color);
+  }
+
   .controlButton {
     background: none;
     border: none;
@@ -1572,7 +1907,7 @@
       border-radius 250ms,
       scale 500ms
     ;
-
+    backdrop-filter: blur(var(--blur-radius));
     min-width: 100px;
   }
 

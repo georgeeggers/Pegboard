@@ -10,6 +10,7 @@ export const globalState = $state({
     titleColor: "f8f8f8",
     inactiveColor: "252525",
     activeColor: "2f2f2f",
+    blurRadius: "5",
     noteWidth: '500',
     imageWidth: '500',
     experimental: false,

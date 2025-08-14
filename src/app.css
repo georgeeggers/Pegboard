@@ -13,6 +13,9 @@
   --hover-color: #947900;
   --text-color: #f8f8f8;
   --title-color: #f8f8f8;
+  --dot-color: #F8FBF8;
+  --blur-radius: 5px;
+
 
   background-color: var(--bg-color);
 
@@ -24,7 +27,6 @@
   scrollbar-width: none; /* For Firefox */
   -ms-overflow-style: none; /* For Internet Explorer and Edge */
 
-  --dot-color: #F8FBF8;
   --dot-size: 2px;
   --dot-space: 50px;
 	background:
@@ -32,6 +34,8 @@
     linear-gradient(var(--bg-color) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
 	  var(--dot-color)
   ;
+
+  transition: background 250ms ease;
 }
 
 :root::-webkit-scrollbar {
