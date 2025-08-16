@@ -909,7 +909,7 @@
 
 <div class="viewport">
 
-{#each notes as note (note.id)}
+{#each notes as note(note.id)}
   <div 
     class="note {note.type}Type" id='{notes.indexOf(note).toString()}' 
     style="left: {note.x}px; top: {note.y}px; {selected == notes.indexOf(note) ? "background-color: var(--note-color); z-index: 2;": ""} max-width: {note.type == "image" ? globalState.imageWidth : (note.type == "note" ? globalState.noteWidth : "1000000")}px;"
@@ -924,28 +924,21 @@
       >
       </textarea>
     {:else}
-      <textarea
-        bind:value={note.title}
-        class="title"
-        readonly
-      >
-      </textarea>
+      <p1 class="title">{note.title}</p1>
     {/if}
     
     {#if note.type == "note"}
       {#if note.editing}
         <textarea
-          bind:value={note.content}
           class="body"
           placeholder="Content"
+          bind:value={note.content}
         ></textarea>
       {:else}
-        <textarea
-          bind:value={note.content}
+        <p1
           class="body"
-          readonly
-        ></textarea>
-      {/if} 
+        >{note.content}</p1>
+      {/if}
     {:else if note.type == "image"}
       {#if note.editing}
         <input
@@ -1036,11 +1029,9 @@
 
 
             </label>
-            <textarea
+            <p1
               class="body"
-              placeholder="Content"
-              readonly
-            >{note.image}</textarea>
+            >{note.image}</p1>
           {:else}
             <label for="uploadTrigger"
               class="imagePlaceholder"
@@ -1053,11 +1044,9 @@
               <path d="M187,65v1332c0,19,7,35,22,48l8,6,3,2c8,4,17,7,26,8h1061c17-1,32-8,44-21,11-12,17-26,17-43v-884c0-17-6-32-18-45-4-5-8-9-13-13L904,27c-9-9-19-17-30-22-4-1-7-2-7-2l-12-3H251c-18,0-33,6-45,18s-19,28-19,47ZM799,553c9,11,20,19,33,23l12,2h394v753l-921,1V129l468,1v384c0,15,5,28,14,39ZM920,228l217,215h-217v-215Z"/>
             </svg>
             </label>
-            <textarea
+            <p1
               class="body"
-              placeholder="Content"
-              readonly
-            >{note.image}</textarea>
+            >{note.image}</p1>
           {/if}
 
       {/if}
@@ -1076,9 +1065,7 @@
                 <textarea 
                   class="body"
                   bind:value={note.todo.items[i]}
-                  placeholder="Name"
-                >
-                </textarea>
+                ></textarea>
                 <button class="inlineButton hover" onclick="{() => {
                   note.todo.items.splice(i, 1);
                   note.todo.values.splice(i, 1);
@@ -1107,12 +1094,9 @@
 
                 </button>
               {:else}
-                <textarea 
+                <p1
                   class="body"
-                  readonly
-                  bind:value={note.todo.items[i]}
-                >
-                </textarea>
+                >{note.todo.items[i]}</p1>
               {/if}
             </span>
           {:else}
@@ -1125,7 +1109,6 @@
                 <textarea
                   class="body"
                   bind:value={note.todo.items[i]}
-                  placeholder="Name"
                 ></textarea>
                 <button class="inlineButton hover" onclick="{() => {
                   note.todo.items.splice(i, 1);
@@ -1148,11 +1131,9 @@
               
                 </button>
               {:else}
-                <textarea
+                <p1
                   class="body"
-                  readonly
-                  bind:value={note.todo.items[i]}
-                ></textarea>
+                >{note.todo.items[i]}</p1>
               {/if}
             </span>
             {#each note.todo.values[i].items as _subItem, index}
@@ -1164,10 +1145,9 @@
                 </div>
 
                 {#if note.editing}
-                  <textarea 
+                  <textarea
                     class="body"
                     bind:value={note.todo.values[i].items[index]}
-                    placeholder="Name"
                   ></textarea>
                   <button class="inlineButton hover" onclick="{() => {
                     note.todo.values[i].items.splice(index, 1);
@@ -1184,11 +1164,9 @@
 
                   </button>
                 {:else}
-                  <textarea 
+                  <p1
                     class="body"
-                    readonly
-                    bind:value={note.todo.values[i].items[index]}
-                  ></textarea>
+                  >{note.todo.values[i].items[index]}</p1>
                 {/if}
               </span>
             {/each}
