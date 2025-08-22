@@ -1820,7 +1820,7 @@
 
   .menuButton {
     position: fixed;
-    width: min(7vh, 7vh);
+    width: min(7vh, 7vw);
     height: min(7vh, 7vw);
     top: min(2.5vw, 2.5vh);
     right: min(2.5vw, 2.5vh);
