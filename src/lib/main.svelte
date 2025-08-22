@@ -10,7 +10,7 @@
   let offsetX = $state(0);
   let offsetY = $state(0);
   let snapSize = $state(1);
-
+  let clientStorage = $state(false);
   
 
   $effect(() => {
@@ -244,7 +244,7 @@
   }
 
   let mouseUpLogic = async (e) => {
-    if(e.button == 0){
+    if(e.button == 0 && dragging){
       // @ts-ignore
       dragging = false;
       document.removeEventListener('mousemove', dragLogic);
@@ -270,15 +270,20 @@
 
   let mouseDownLogic = async (e) => {
     if(e.button == 0){
-      const element = e.currentTarget;
-      // @ts-ignore
-      selected = parseInt(element.id);
-      offsetX = notes[selected].x - e.pageX;
-      offsetY = notes[selected].y -  e.pageY;
-      dragging = true;
-      document.addEventListener('mousemove', dragLogic);
+      const element = e.target.closest('.mover');
+      if(element != null){
+        if(element.id.split('-').length == 2){
+          // @ts-ignore
+          selected = parseInt(element.id.split('-')[1]);
+          offsetX = notes[selected].x - e.pageX;
+          offsetY = notes[selected].y -  e.pageY;
+          dragging = true;
+          document.addEventListener('mousemove', dragLogic);
+        }
+      } else {
+        selected = parseInt(e.currentTarget.id);
+      }
     }
-
   }
 
   const moveLogic = (e) => {
@@ -464,16 +469,8 @@
 
   const edit = async (index) => {
     notes[index].editing = !notes[index].editing;
-    if(notes[index].editing){
-      let temp = await document.getElementById(index.toString());
-      temp.removeEventListener('mousedown', mouseDownLogic);
-      temp.removeEventListener('mouseup', mouseUpLogic);
-    }
     if(notes[index].editing == false){
       try {
-        let temp = await document.getElementById(index.toString());
-        temp.addEventListener('mousedown', mouseDownLogic);
-        temp.addEventListener('mouseup', mouseUpLogic);
         const _record = await globalState.pocket.collection('notes').update(notes[index].id, notes[index]);
       } catch (Err) {
         console.log("This should be fine")
@@ -483,8 +480,9 @@
 
   const deleteNote = async (index) => {
     console.log("deleting");
-    await globalState.pocket.collection('notes').delete(notes[index].id);
+    let id = notes[index].id;
     notes.splice(index, 1);
+    await globalState.pocket.collection('notes').delete(id);
     selected = -1;
   }
 
@@ -712,6 +710,7 @@
     for(let index = notes.length - 1; index >= 0; index--){
       let note = notes[index];
       if(note.title == "" && note.content == "" && note.image == "" && note.todo == null && note.editing == false){
+        console.log(index);
         await deleteNote(index);
         deleted = true;
       }
@@ -1503,7 +1502,16 @@
         {/if}
       {/if}
 
+      <div class="mover controlButton" id="b-{notes.indexOf(note)}">
+        <svg fill="currentColor" viewBox="0 0 1487 1487" class="inlineSvg">
+          <!-- dragIcon -->
+          <path d="M1291,547c27,0,52,5,76,15,23,10,44,24,63,43,18,19,32,40,42,64,10,23,15,48,15,74s-5,52-15,76-24,45-42,64c-19,18-40,32-63,42-24,10-49,15-76,15s-51-5-75-15c-25-10-46-24-64-42s-33-40-43-63c-10-24-15-50-15-77s5-51,16-75c10-24,24-45,42-63s39-32,64-42c24-11,49-16,75-16ZM1291,676c-19,0-35,7-48,20s-19,28-19,47,6,35,19,48,29,19,48,19,35-6,48-19,19-29,19-48-6-34-19-47-29-20-48-20ZM745,547c27,0,52,5,76,15,23,10,44,24,63,43s32,39,42,63c9,24,14,49,14,75s-5,53-14,77c-10,24-24,45-42,63-19,18-40,32-63,42-24,10-49,15-76,15s-52-5-76-15-45-24-64-42c-19-19-33-40-43-63-10-24-15-50-15-77s5-51,16-75c10-24,24-45,42-63s40-33,64-43c23-10,49-15,76-15ZM744,676c-19,0-34,7-47,20s-20,28-20,47,7,35,20,48,28,19,47,19,35-6,48-19,20-29,20-48-7-34-20-47-29-20-48-20ZM198,547c27,0,52,5,76,15,23,10,44,24,63,43s32,39,42,63c9,24,14,49,14,75s-5,53-14,77c-10,24-24,45-42,63-19,18-40,32-63,42-24,10-49,15-76,15s-51-5-75-15c-25-10-46-24-64-42s-33-40-43-64c-11-24-16-49-16-76s5-51,16-74c10-24,24-45,43-64s39-32,64-42c24-11,49-16,75-16ZM197,676c-19,0-34,7-47,20s-20,28-20,47,7,35,20,48,28,19,47,19,36-6,49-19,19-29,19-48-6-34-19-47-30-20-49-20Z"/>
+        </svg>
+
+      </div>
+
     </span>
+
   </div>
 
 {/each}
