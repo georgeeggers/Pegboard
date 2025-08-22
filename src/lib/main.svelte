@@ -84,7 +84,8 @@
       blurRadius: globalState.blurRadius,
       theme: themeName,
       customs: customThemes,
-      url: globalState.url
+      url: globalState.url,
+      gap: globalState.gap
     }
     isCustom = false;
     localStorage.setItem("settings", JSON.stringify(prefs));
@@ -110,6 +111,7 @@
       globalState.imageWidth = settings.imageWidth;
       globalState.url = settings.url;
       globalState.blurRadius = settings.blurRadius;
+      globalState.gap = settings.gap;
       themeName = settings.theme;
 
       for(let i of settings.customs){
@@ -659,7 +661,7 @@
   /*
 
     {
-      low: lowest y coord,
+      low: highest y coord,
       high: highest y coord,
       x: the x to give
     }
@@ -695,13 +697,16 @@
     }
   }
 
-  const deleteEmpty = async () => {
-    for(let index = notes.length - 1; index >= 0; index--){
-      let note = notes[index];
-      if(note.title == "" && note.content == "" && note.image == "" && note.todo == null && note.editing == false){
-        await deleteNote(index);
+  const gethighestY = (x, borders) => {
+    let highestY = 0;
+    for(let border of borders){
+      if(x >= border.low && x <= border.high){
+        if(border.output > highestY){
+          highestY = border.output;
+        }
       }
     }
+    return highestY;
   }
 
   const sort = async () => {
@@ -709,7 +714,7 @@
 
     for(let index = notes.length - 1; index >= 0; index--){
       let note = notes[index];
-      if(note.title == "" && note.content == "" && note.image == "" && note.todo == null && note.editing == false){
+      if(note.title == "" && note.content == "" && note.image == "" && (note.todo == null || note.todo.items[0] == '') && note.editing == false){
         console.log(index);
         await deleteNote(index);
         deleted = true;
@@ -727,105 +732,126 @@
     let totalHeight = 0;
     let sortList = [];
     for(let i of noteDivs){
-      sortList.push({
+      if(!(i.classList[1].toString() == "settingsType") && !(i.classList[1].toString() == "styleType")){
+        sortList.push({
+          // @ts-ignore
+          area: i.offsetWidth * i.offsetHeight,
+          // @ts-ignore
+          width: i.offsetWidth,
+          // @ts-ignore
+          height: i.offsetHeight,
+          id: i.id,
+          // @ts-ignore
+          flatness: i.offsetWidth / i.offsetHeight,
+          x: 0,
+          y: 0
+        });
         // @ts-ignore
-        area: i.offsetWidth * i.offsetHeight,
+        totalWidth += i.offsetWidth;
         // @ts-ignore
-        width: i.offsetWidth,
-        // @ts-ignore
-        height: i.offsetHeight,
-        id: i.id
-      });
-      // @ts-ignore
-      totalWidth += i.offsetWidth;
-      // @ts-ignore
-      totalHeight += i.offsetHeight;
+        totalHeight += i.offsetHeight;
+      }
+
     }
-    let time = Math.round(1000 / sortList.length);
+    let time = Math.round(1500 / sortList.length / 2);
     sortList.sort((a, b) => {
-      if(a.height < b.height){
+      if(a.flatness < b.flatness){
         return 1;
-      } else if (a.height > b.height){
+      } else if (a.flatness > b.flatness){
         return -1;
       }
-      if(a.width < b.width){
-        return 1;
-      } else if (a.width > b.width){
+      if(a.height < b.height){
         return -1;
+      } else if (a.height > b.height){
+        return 1;
       }
       return 0;
     });
-    let averageHeight = totalHeight / sortList.length;
-    let ratio = totalHeight / totalWidth;
-    let columns = Math.ceil(Math.sqrt(sortList.length))
-    let rows = Math.floor(ratio * columns);
-    let estimatedWallHeight = rows * averageHeight;
-    console.log(estimatedWallHeight);
-    let eclipsedHeight = 0;
-    let gap = 10;
+
+    let idealWidth = (totalWidth / (Math.ceil(Math.sqrt(sortList.length)))) * 1.5;
+    let eclipsedWidth = 0;
+    const gap = parseInt(globalState.gap);
+    let nextX = gap;
     let nextY = gap;
     let count = 0;
-    // this places a wall of sorts along the left side of the screen
+    let layers = 0;
+    
+    let borders = [];
+    let itemLayers = [];
+    let currentLayer = [];
+
+
     for(let i of [...sortList]){
-      eclipsedHeight += i.height;
-      if(eclipsedHeight >= estimatedWallHeight && count >= 2){
-        console.log(eclipsedHeight);
-        maxY = nextY - gap;
-        break;
-      }
+      eclipsedWidth += gap + i.width;
       let id = parseInt(i.id);
-      notes[id].x = gap;
       notes[id].y = nextY;
+      notes[id].x = nextX;
+      sortList[sortList.indexOf(i)].x = nextX;
+      sortList[sortList.indexOf(i)].y = nextY;
       selected = id;
-      collisionBounds.push({
-        low: nextY - gap,
-        high: nextY + i.height + gap,
-        x: gap + i.width
-      })
-      nextY += gap + i.height;   
-      sortList.splice(0, 1);
+      if(layers == 0){
+        sortList.splice(sortList.indexOf(i), 1);
+        borders.push({
+          low: nextX,
+          high: i.width + nextX + gap,
+          output: nextY + i.height + gap
+        });
+      }
+
+      nextX += gap + i.width;
+      if(i.height > maxY){
+        maxY = i.height;
+      }
       count++;
       await sleep(time);
-      if(count == rows){
-        maxY = nextY - gap;
-        break;
+
+      currentLayer.push(i);
+      if(eclipsedWidth >= idealWidth){
+        eclipsedWidth = 0;
+        nextY += maxY + gap;
+        nextX = gap;
+        maxY = 0;
+        layers++;
+        itemLayers.push(currentLayer);
+        currentLayer = [];
       }
     }
+    itemLayers.push(currentLayer);
 
-    // places remaining blocks based on collision bounds
-    nextY = gap;
-    let coord;
-    let newBorders = [];
-    for(let i of sortList){
-      if(nextY + i.height > maxY){
-        for(let i of newBorders){
-          collisionBounds.push(i);
+    let temp = [];
+
+    for(let ind = 0; ind < layers; ind++){
+      for(let i of itemLayers[ind + 1]){
+        let y1 = gethighestY(i.x, borders);
+        let y2 = gethighestY(i.x + i.width, borders);
+        let id = parseInt(i.id);
+        if(y1 > y2){
+          notes[id].y = y1;
+          temp.push({
+            low: i.x,
+            high: i.width + i.x + gap,
+            output: y1 + i.height + gap
+          })
+        } else {
+          notes[id].y = y2;
+          temp.push({
+            low: i.x,
+            high: i.width + i.x + gap,
+            output: y2 + i.height + gap
+          })
         }
-        newBorders = [];
-        nextY = gap;
+        await(sleep(time));
       }
-      coord = checkCollison(nextY, nextY + i.height);
-      let response = checkCollison(coord.y, coord.y + i.height);
-      if(response != undefined){
-        coord = response;
+      for(let i of temp){
+        borders.push(i);
       }
-
-
-      let id = parseInt(i.id)
-      notes[id].x = coord.x + gap;
-      notes[id].y = coord.y;
-      selected = id;
-      
-      newBorders.push({
-        low: coord.y - gap,
-        high: coord.y + i.height + gap,
-        x: coord.x + gap + i.width
-      })
-      nextY = coord.y + i.height + gap;
-      await sleep(time);
+      temp = [];
     }
+
     for(let i of notes){
-      const _result = await globalState.pocket.collection('notes').update(i.id, i);
+      if(i.type != "settings" && i.type != "style"){
+        const _result = await globalState.pocket.collection('notes').update(i.id, i);
+      }
     }
   }
 
@@ -963,7 +989,7 @@
         <input
           type="file"
           onchange={(event) => handleFileChange(event, notes.indexOf(note))}
-          id="uploadTrigger"
+          id="uploadTrigger{note.id}"
           style="visibility: hidden; position: fixed;"
         >
 
@@ -981,7 +1007,7 @@
 
           </div>
         {:else}
-          <label class="imagePlaceholder hover" style="flex-direction: row;"for="uploadTrigger"
+          <label class="imagePlaceholder hover" style="flex-direction: row;"for="uploadTrigger{note.id}"
               ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
               ondragover={(e) => e.preventDefault()}
           >+</label>
@@ -990,7 +1016,7 @@
 
 
           {#if get_thumbnail(notes.indexOf(note)).type == "image"}
-            <label for="uploadTrigger"
+            <label for="uploadTrigger{note.id}"
               class="imagePlaceholder"
               ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
               ondragover={(e) => e.preventDefault()}
@@ -998,7 +1024,7 @@
               <img src="{get_thumbnail(notes.indexOf(note)).data}" class="thumbnailImage" alt="thumbnail" draggable="false"/>
             </label>
           {:else if get_thumbnail(notes.indexOf(note)).type == "audio" && globalState.experimental}
-            <label for="uploadTrigger"
+            <label for="uploadTrigger{note.id}"
               class="imagePlaceholder"
               ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
               ondragover={(e) => e.preventDefault()}
@@ -1052,7 +1078,7 @@
               class="body"
             >{note.image}</p1>
           {:else}
-            <label for="uploadTrigger"
+            <label for="uploadTrigger{note.id}"
               class="imagePlaceholder"
               ondrop={(e) => handleFileChange(e, notes.indexOf(note))}
               ondragover={(e) => e.preventDefault()}
@@ -1226,6 +1252,18 @@
         <textarea
             class="body"
             bind:value={globalState.imageWidth}
+        ></textarea>
+        <p1 class="body" style="color: #5f5f5f">px</p1>
+      </span>
+
+      <span class="inline">
+        <p1 class="title">Cleanup Gap</p1>
+      </span>
+        
+      <span class="inline">
+        <textarea
+            class="body"
+            bind:value={globalState.gap}
         ></textarea>
         <p1 class="body" style="color: #5f5f5f">px</p1>
       </span>
@@ -1526,7 +1564,7 @@
 </svg>
 
 </button>
-<button onclick={add} class="menuButton" style='{menuToggle ? "transform: translateY(80px);" : ""}'>
+<button onclick={add} class="menuButton" style='{menuToggle ? "transform: translateY(min(9vw, 9vh));" : ""}'>
 
   <svg fill="currentColor" viewBox="0 0 1293 1293">
     <!-- Plus  -->
@@ -1534,7 +1572,7 @@
   </svg>
 
 </button>
-<button onclick={addImage} class="menuButton" style='{menuToggle ? "transform: translateY(160px);" : ""}'>
+<button onclick={addImage} class="menuButton" style='{menuToggle ? "transform: translateY(min(18vw, 18vh));" : ""}'>
 
   <svg fill='currentColor' viewBox="0 0 1184 1184">
     <!-- Picture -->
@@ -1542,7 +1580,7 @@
   </svg>
 
 </button>
-<button onclick={addTodo} class="menuButton" style='{menuToggle ? "transform: translateY(240px);" : ""}'>
+<button onclick={addTodo} class="menuButton" style='{menuToggle ? "transform: translateY(min(27vw, 27vh));" : ""}'>
 
   <svg fill="currentColor" viewBox="0 0 1281 1281">
     <!-- Todo  -->
@@ -1550,7 +1588,7 @@
   </svg>
 
 </button>
-<button onclick={sort} class="styleButton" style='{menuToggle ? "transform: translateY(320px);" : ""}'>
+<button onclick={sort} class="menuButton" style='{menuToggle ? "transform: translateY(min(36vw, 36vh));" : ""}'>
 
   <svg fill="currentColor" viewBox="0 0 1382 1382">
     <!-- Refresh -->
@@ -1559,7 +1597,7 @@
 
 </button>
 
-<button onclick={style} class="styleButton" style='{menuToggle ? "transform: translateY(400px);" : ""}'>
+<button onclick={style} class="menuButton" style='{menuToggle ? "transform: translateY(min(45vw, 45vh));" : ""}'>
 
   <svg fill="currentColor" viewBox="0 0 1377 1377">
     <!-- Droplet -->
@@ -1568,7 +1606,7 @@
 
 </button>
 
-<button onclick={settings} class="styleButton" style='{menuToggle ? "transform: translateY(480px);" : ""}'>
+<button onclick={settings} class="menuButton" style='{menuToggle ? "transform: translateY(min(54vw, 54vh));" : ""}'>
 
   <svg viewBox="0 0 1361 1361" fill="currentColor">
     <!-- settings  -->
@@ -1576,29 +1614,6 @@
   </svg>
 
 </button>
-<!-- 
-<button onclick={addImage} class="menuButton" style='{menuToggle ? "transform: translateY(560px);" : ""}'>
-
-  <svg viewBox="0 0 1461 1461" fill="currentColor">
-    <!-- File
-    <path d="M187,65v1332c0,19,7,35,22,48l8,6,3,2c8,4,17,7,26,8h1061c17-1,32-8,44-21,11-12,17-26,17-43v-884c0-17-6-32-18-45-4-5-8-9-13-13L904,27c-9-9-19-17-30-22-4-1-7-2-7-2l-12-3H251c-18,0-33,6-45,18s-19,28-19,47ZM799,553c9,11,20,19,33,23l12,2h394v753l-921,1V129l468,1v384c0,15,5,28,14,39ZM920,228l217,215h-217v-215Z"/>
-  </svg>
-
-</button>
--->
-
-<!-- Style toggle menu -->
-
-<!--
-<button onclick={deleteEmpty} class="styleButton" style='{menuToggle ? "transform: translateY(240px);" : ""}'>
-
-  <svg fill="currentColor" viewBox="0 0 1480 1480">
-    <!-- Trash --
-    <path d="M1225,582h57c19,0,34-6,47-19s19-28,19-47h1v-89c0-58-18-105-53-140s-88-57-150-58h-161c-1-31-8-61-21-89s-30-52-51-73c-22-21-47-38-75-50-29-11-59-17-90-17v3l-3-2-2-1c-31,0-61,6-89,17-29,12-54,28-76,49s-39,45-51,73c-13,29-19,59-20,90h-167c-64,0-115,19-154,56-37,37-55,84-55,142v89h1c0,19,7,34,20,47s28,19,47,19h55l59,654c9,87,35,150,80,189,22,19,49,33,81,42,31,9,68,13,111,13h316c43,0,80-4,111-13s57-23,78-42c43-39,69-102,77-189l58-654ZM749,112v1c34,0,62,11,83,34,21,22,32,49,33,82h-238c1-33,12-60,33-83,21-22,49-33,83-33h2l2-1h2ZM337,360h803c52,0,78,21,78,64v28H262v-28c0-42,25-63,75-64ZM906,1350h-329c-21,0-38-2-53-5s-28-9-39-17c-23-16-37-47-42-92l-59-653h711l-58,653c-5,46-18,77-40,93s-23,13-37,16c-15,3-33,5-54,5Z"/>
-  </svg>
-
-</button>
--->
 
 <div 
   id="notifArea" 
@@ -1674,11 +1689,6 @@
 
   svg {
     width: 100%;
-    height: auto;
-  }
-
-  .bigSvg {
-    max-width: 64px;
   }
 
   .mediumSvg {
@@ -1810,17 +1820,17 @@
 
   .menuButton {
     position: fixed;
-    width: 64px;
-    height: 64px;
-    top: 36px;
-    right: 36px;
+    width: min(7vh, 7vh);
+    height: min(7vh, 7vw);
+    top: min(2.5vw, 2.5vh);
+    right: min(2.5vw, 2.5vh);
     font-size: 64px;
     box-sizing: border-box;
     align-items: center;
     justify-content: center;
     place-items: center;
     text-align: center;
-    padding: 10px;
+    padding: min(1vw, 1vh);
     line-height: 0px;
     border-radius: 100%;
     border: none;
@@ -1834,35 +1844,6 @@
   }
 
   .menuButton:hover {
-    color: var(--hover-color);
-  }
-
-  .styleButton {
-    position: fixed;
-    width: 64px;
-    height: 64px;
-    top: 36px;
-    right: 36px;
-    font-size: 64px;
-    box-sizing: border-box;
-    align-items: center;
-    justify-content: center;
-    place-items: center;
-    text-align: center;
-    padding: 10px;
-    line-height: 0px;
-    border-radius: 100%;
-    border: none;
-    background-color: var(--note-color);
-    transition: 
-      color 500ms,
-      transform 500ms
-    ;
-    z-index: 3;
-    cursor: pointer;
-  }
-
-  .styleButton:hover {
     color: var(--hover-color);
   }
 
