@@ -349,6 +349,30 @@
             let temp = await document.getElementById((notes.length - 1).toString());
             temp.addEventListener('mousedown', mouseDownLogic);
             temp.addEventListener('mouseup', mouseUpLogic);
+          } else if (action == "update"){
+            // get index
+            let index = 0;
+            for(let i of notes){
+              if(i.id == record.id){
+                break;
+              }
+              index++;
+            }
+
+            let temp = record;
+            temp.playing = notes[index].playing;
+            temp.editing = notes[index].editing;
+            notes[index] = temp;
+          } else if (action == "delete"){
+            let index = 0;
+            for(let i of notes){
+              if(i.id == record.id){
+                break;
+              }
+              index++;
+            }
+
+            notes.splice(index, 1);
           }
         });
     } catch {
