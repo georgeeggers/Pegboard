@@ -2,6 +2,7 @@
   import { scale } from "svelte/transition";
   import { globalState, refresh_pocket } from "../global.svelte";
   import { onDestroy, onMount, tick } from "svelte";
+
   // contains objects that have titles, bodies, colors, and x and y coords
   let notes = $state([]);
   let selected = $state(-1);
@@ -9,6 +10,8 @@
   let offsetX = $state(0);
   let offsetY = $state(0);
   let snapSize = $state(1);
+
+  
 
   $effect(() => {
     themeName = "MyTheme";
@@ -255,7 +258,11 @@
       notes[selected].y = (Math.round(notes[selected].y / snapSize) * snapSize);
 
       if(notes[selected].type != "settings" && notes[selected].type != "style"){
-        const _record = await globalState.pocket.collection('notes').update(notes[selected].id, notes[selected]);
+        try {
+          const _record = await globalState.pocket.collection('notes').update(notes[selected].id, notes[selected]);
+        } catch(Err) {
+          console.log("Its yelling because of delete or repeat requests but we good non fatal error type stuff");
+        }
       }
     }
 
@@ -306,6 +313,8 @@
   }
 
   let moveDrag = $state(false);
+  
+  let created = false;
 
   let unsubscribe;
   onMount(async () => {
@@ -328,6 +337,15 @@
             thing.editing = false;
             thing.playing = false;
             await notes.push(thing);
+
+            // add the event listeners up here
+            let tempElement = document.getElementById((notes.length - 1).toString());
+            tempElement.addEventListener('mousedown', mouseDownLogic);
+            tempElement.addEventListener('mouseup', mouseUpLogic);
+            edit(notes.length - 1);
+            selected = notes.length - 1;
+
+
             let temp = await document.getElementById((notes.length - 1).toString());
             temp.addEventListener('mousedown', mouseDownLogic);
             temp.addEventListener('mouseup', mouseUpLogic);
@@ -457,18 +475,11 @@
       type: "note", 
       title: "",
       content: "",
-      x: window.scrollX,
-      y: window.scrollY
+      x: window.scrollX + window.outerWidth / 2 - 100,
+      y: window.scrollY + window.outerHeight / 2 - 100
     };
 
     const record = await globalState.pocket.collection('notes').create(data);
-
-    let temp = document.getElementById((notes.length - 1).toString());
-    temp.addEventListener('mousedown', mouseDownLogic);
-    temp.addEventListener('mouseup', mouseUpLogic);
-
-    edit(notes.length - 1);
-    selected = notes.length - 1;
   }
 
   const settings = async () => {
@@ -579,19 +590,11 @@
       type: "image", 
       title: "",
       uploading: false,
-      x: window.scrollX,
-      y: window.scrollY
+      x: window.scrollX + window.outerWidth / 2 - 100,
+      y: window.scrollY + window.outerHeight / 2 - 100
     };
 
     const _record = await globalState.pocket.collection('notes').create(data);
-
-    let temp = document.getElementById((notes.length - 1).toString());
-    temp.addEventListener('mousedown', mouseDownLogic);
-    temp.addEventListener('mouseup', mouseUpLogic);
-
-    edit(notes.length - 1);
-    selected = notes.length - 1;
-
   }
 
   const addTodo = async () => {
@@ -606,18 +609,11 @@
           false
         ]
       },
-      x: window.scrollX,
-      y: window.scrollY
+      x: window.scrollX + window.outerWidth / 2 - 100,
+      y: window.scrollY + window.outerHeight / 2 - 100
     };
 
     const _record = await globalState.pocket.collection('notes').create(data);
-
-    let temp = document.getElementById((notes.length - 1).toString());
-    temp.addEventListener('mousedown', mouseDownLogic);
-    temp.addEventListener('mouseup', mouseUpLogic);
-
-    edit(notes.length - 1);
-    selected = notes.length - 1;
   }
 
   const isComplete = (arr) => {
@@ -1731,7 +1727,7 @@
     ;
   }
   p1 {
-    white-space: pre-wrap;
+    white-space: pre-wrap;    
   }
 
   .thumbnailImage {
