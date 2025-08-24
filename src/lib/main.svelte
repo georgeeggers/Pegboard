@@ -1,6 +1,6 @@
 <script>
   import { scale } from "svelte/transition";
-  import { globalState, refresh_pocket } from "../global.svelte";
+  import { globalState, refresh_pocket, loadSettings, themes } from "../global.svelte";
   import { onDestroy, onMount, tick } from "svelte";
 
   // contains objects that have titles, bodies, colors, and x and y coords
@@ -14,7 +14,7 @@
   
 
   $effect(() => {
-    themeName = "MyTheme";
+    globalState.themeName = "MyTheme";
     isCustom = true;
     const colorVars = {
       '--main-color': globalState.mainColor,
@@ -33,7 +33,7 @@
 
     document.documentElement.style.setProperty('--blur-radius', `${globalState.blurRadius}px`);
   });
-  
+
   $effect(() => {
     refresh_pocket(globalState.url)
   })
@@ -41,10 +41,10 @@
   let isCustom = $state(false);
   let customThemes = $state([]);
 
-  const saveSettings = () => {
+  const saveSettings = async () => {
     if(isCustom){
       customThemes.push(JSON.stringify({
-        name: themeName,
+        name: globalState.themeName,
         backgroundColor: globalState.backgroundColor,
         activeColor: globalState.activeColor,
         inactiveColor: globalState.inactiveColor,
@@ -57,7 +57,7 @@
       }));
 
       themes.push({
-        name: themeName,
+        name: globalState.themeName,
         backgroundColor: globalState.backgroundColor,
         activeColor: globalState.activeColor,
         inactiveColor: globalState.inactiveColor,
@@ -82,7 +82,7 @@
       noteWidth: globalState.noteWidth,
       imageWidth: globalState.imageWidth,
       blurRadius: globalState.blurRadius,
-      theme: themeName,
+      theme: globalState.themeName,
       customs: customThemes,
       url: globalState.url,
       gap: globalState.gap
@@ -92,33 +92,7 @@
     addNotification("Settings saved!");
   }
 
-  const loadSettings = async () => {
-      const settings = JSON.parse(await localStorage.getItem("settings"));
-      if(settings == null){
-          return;
-      }
 
-      globalState.mainColor = settings.mainColor;
-      globalState.dotColor = settings.dotColor;
-      globalState.backgroundColor = settings.backgroundColor;
-      globalState.hoverColor = settings.hoverColor;
-      globalState.textColor = settings.textColor;
-      globalState.experimental = settings.experimental;
-      globalState.titleColor = settings.titleColor;
-      globalState.inactiveColor = settings.inactiveColor;
-      globalState.activeColor = settings.activeColor;
-      globalState.noteWidth = settings.noteWidth;
-      globalState.imageWidth = settings.imageWidth;
-      globalState.url = settings.url;
-      globalState.blurRadius = settings.blurRadius;
-      globalState.gap = settings.gap;
-      themeName = settings.theme;
-
-      for(let i of settings.customs){
-        themes.push(JSON.parse(i));
-      }
-
-  }
 
   const clearSettings = () => {
     try {
@@ -128,8 +102,6 @@
     }
     addNotification("Settings cleared! Reload for changes to take effect")
   }
-
-  let themeName = $state("Default")
 
   const loadTheme = async (theme) => {
       globalState.hoverColor = theme.hoverColor;
@@ -142,7 +114,7 @@
       globalState.mainColor = theme.mainColor;
       globalState.blurRadius = theme.blurRadius;
       await tick;
-      themeName = theme.name;
+      globalState.themeName = theme.name;
       isCustom = false;
   }
 
@@ -158,85 +130,6 @@
   --dot-color: #F8FBF8;
 
   */
-
-  let themes = $state([
-    {
-      name: "Default",
-      backgroundColor: "1a1a1a",
-      activeColor: "2f2f2f",
-      inactiveColor: "252525",
-      mainColor: "c5a103",
-      hoverColor: "947900",
-      textColor: "f8f8f8",
-      titleColor: "f8f8f8",
-      dotColor: "f8f8f8",
-      blurRadius: '0'
-
-    },
-    {
-      name: "Cyber",
-      backgroundColor: "080808e0",
-      activeColor: "151515",
-      inactiveColor: "10101088",
-      mainColor: "007f77",
-      hoverColor: "006e55",
-      textColor: "009f77",
-      titleColor: "009f77",
-      dotColor: "009f77",
-      blurRadius: '7'
-
-    },
-    {
-      name: "Light",
-      backgroundColor: "f8f8f8",
-      activeColor: "c8c8c8",
-      inactiveColor: "e8e8e8",
-      mainColor: "c5a103",
-      hoverColor: "947900",
-      textColor: "1a1a1a",
-      titleColor: "1a1a1a",
-      dotColor: "000000",
-      blurRadius: '0'
-
-    },
-    {
-      name: "Midnight",
-      backgroundColor: "000000",
-      activeColor: "1a1a1a",
-      inactiveColor: "121212",
-      mainColor: "f8f8f8",
-      hoverColor: "f8f8f8",
-      textColor: "ffffff",
-      titleColor: "ffffff",
-      dotColor: "000000",
-      blurRadius: '0'
-    },    
-    {
-      name: "Mocha",
-      backgroundColor: "1e1e2e",
-      activeColor: "45475a",
-      inactiveColor: "313244",
-      mainColor: "ed8796",
-      hoverColor: "ee99a0",
-      textColor: "cdd6f4",
-      titleColor: "b4befe",
-      dotColor: "b4befe",
-      blurRadius: '0'
-    },
-    {
-      name: "Glassy",
-      backgroundColor: "313244",
-      activeColor: "f8f8f880",
-      inactiveColor: "e0e0e080",
-      mainColor: "ed8796",
-      hoverColor: "ee99a0",
-      textColor: "1a1a1a",
-      titleColor: "0e0e0e",
-      dotColor: "ed8796",
-      blurRadius: '8'
-    }
-
-  ])
 
   let dragLogic = (e) => {
     if(dragging){
@@ -321,12 +214,10 @@
 
   let moveDrag = $state(false);
   
-  let created = false;
-
   let unsubscribe;
   onMount(async () => {
-    await loadSettings();
     isCustom = false;
+    await loadSettings();
     try {
       const response = await globalState.pocket.collection("notes").getFullList({
         sort: "-created",
@@ -1436,7 +1327,7 @@
       <div class="themeContainer">
         {#each themes as theme}
           <div class="inline">
-            <button class="body themeSelector" onclick={() => loadTheme(themes[themes.indexOf(theme)])} style="{themeName == theme.name ? "color: var(--main-color)" : ""}">{theme.name}</button>
+            <button class="body themeSelector" onclick={() => loadTheme(themes[themes.indexOf(theme)])} style="{globalState.themeName == theme.name ? "color: var(--main-color)" : ""}">{theme.name}</button>
             <div class="styleExample" style="background-color: #{theme.mainColor}; border: 2px solid #{theme.textColor} !important;"></div>
             <div class="styleExample" style="background-color: #{theme.hoverColor}; border: 2px solid #{theme.textColor} !important;"></div>
             <div class="styleExample" style="background-color: #{theme.activeColor}; border: 2px solid #{theme.textColor} !important;"></div>
@@ -1452,7 +1343,7 @@
       </span>
       <textarea
         class="body"
-        bind:value={themeName}
+        bind:value={globalState.themeName}
       >
       </textarea>
 
@@ -1927,6 +1818,14 @@
     overflow: hidden;
     outline: none !important;
     border: none !important;
+  }
+
+  .viewport {
+    background:
+      linear-gradient(90deg, var(--bg-color) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
+      linear-gradient(var(--bg-color) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
+      var(--dot-color)
+    ;
   }
 
 </style>

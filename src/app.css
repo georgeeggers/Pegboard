@@ -29,11 +29,7 @@
 
   --dot-size: 2px;
   --dot-space: 50px;
-	background:
-	  linear-gradient(90deg, var(--bg-color) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
-    linear-gradient(var(--bg-color) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
-	  var(--dot-color)
-  ;
+
 
   transition: background 250ms ease;
 }

@@ -777,9 +777,9 @@
     "id": "pbc_3395098727",
     "listRule": "",
     "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": "",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
     "name": "notes",
     "type": "base",
     "fields": [
