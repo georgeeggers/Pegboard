@@ -105,25 +105,28 @@
     }
 
     .card {
-        width: 60vw;
+        min-width: 70vw;
+        width: fit-content;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 1.5vh;
         height: fit-content;
+        padding-left: 60px;
+        padding-right: 60px;
     }
 
     input {
         font-size: max(3vw, 24px);
         background-color: var(--note-color);
         border: none;
+        width: 100%;
         outline: none;
         font-family: monospace;
         display: flex;
         padding: 10px;
-        border-radius: 15px;
+        border-radius: max(2vh, 2vw);
         color: var(--title-color);
     }
-
 
     h1 {
         font-size: max(7vw, 60px);
