@@ -1,6 +1,6 @@
 <script>
   import { scale } from "svelte/transition";
-  import { globalState, refresh_pocket, loadSettings, themes } from "../global.svelte";
+  import { globalState, refresh_pocket, loadSettings, themes, saveGlobal } from "../global.svelte";
   import { onDestroy, onMount, tick } from "svelte";
 
   // contains objects that have titles, bodies, colors, and x and y coords
@@ -69,27 +69,9 @@
         blurRadius: globalState.blurRadius
       })
     }
-    const prefs = {
-      mainColor: globalState.mainColor,
-      dotColor: globalState.dotColor,
-      backgroundColor: globalState.backgroundColor,
-      hoverColor: globalState.hoverColor,
-      textColor: globalState.textColor,
-      experimental: globalState.experimental,
-      titleColor: globalState.titleColor,
-      inactiveColor: globalState.inactiveColor,
-      activeColor: globalState.activeColor,
-      noteWidth: globalState.noteWidth,
-      imageWidth: globalState.imageWidth,
-      blurRadius: globalState.blurRadius,
-      theme: globalState.themeName,
-      customs: customThemes,
-      url: globalState.url,
-      gap: globalState.gap
-    }
-    isCustom = false;
-    localStorage.setItem("settings", JSON.stringify(prefs));
+    saveGlobal();
     addNotification("Settings saved!");
+    isCustom = false;
   }
 
 
@@ -97,6 +79,7 @@
   const clearSettings = () => {
     try {
       localStorage.removeItem("settings");
+      globalState.pocket.authStore.clear();
     } catch (E) {
       console.log(E);
     }

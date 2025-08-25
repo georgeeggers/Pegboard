@@ -53,6 +53,27 @@ export const refresh_pocket = (url) => {
     }
 }
 
+export const saveGlobal = () => {
+    const prefs = {
+        mainColor: globalState.mainColor,
+        dotColor: globalState.dotColor,
+        backgroundColor: globalState.backgroundColor,
+        hoverColor: globalState.hoverColor,
+        textColor: globalState.textColor,
+        experimental: globalState.experimental,
+        titleColor: globalState.titleColor,
+        inactiveColor: globalState.inactiveColor,
+        activeColor: globalState.activeColor,
+        noteWidth: globalState.noteWidth,
+        imageWidth: globalState.imageWidth,
+        blurRadius: globalState.blurRadius,
+        theme: globalState.themeName,
+        url: globalState.url,
+        gap: globalState.gap
+    }
+    localStorage.setItem("settings", JSON.stringify(prefs));
+}
+
 export let themes = $state([
 {
     name: "Default",
