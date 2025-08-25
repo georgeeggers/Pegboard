@@ -79,7 +79,7 @@
     }
 
     onMount(async () => {
-        await loadSettings()
+        await loadSettings();
         await testAuth();
     });
 
